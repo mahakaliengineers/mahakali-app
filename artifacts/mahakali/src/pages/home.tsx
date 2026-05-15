@@ -80,7 +80,7 @@ export default function Home() {
               <span className="text-white/70">Meant To Last Generations.</span>
             </motion.h1>
             <motion.p variants={FADE_UP} className="text-lg md:text-xl text-white/80 max-w-2xl mb-10 leading-relaxed">
-              We are a premier Indian construction firm delivering civil, structural, residential, commercial, and industrial engineering excellence at scale.
+              We are a premier Nepali construction firm delivering civil, structural, residential, commercial, and industrial engineering excellence at scale.
             </motion.p>
             <motion.div variants={FADE_UP} className="flex flex-wrap gap-4">
               <Button size="lg" className="rounded-none text-base h-14 px-8" onClick={() => scrollTo("projects")}>
@@ -249,7 +249,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-white mb-1">Corporate Office</h4>
-                    <p className="text-secondary-foreground/70">Level 4, Summit Tower, Bandra Kurla Complex,<br/>Bengaluru, Karnataka 560051</p>
+                    <p className="text-secondary-foreground/70">Chabahil-07, Kathmandu, Nepal</p>
                   </div>
                 </motion.div>
                 
@@ -259,7 +259,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-white mb-1">Phone</h4>
-                    <p className="text-secondary-foreground/70">+91 80 4567 8900<br/>+91 98765 43210</p>
+                    <p className="text-secondary-foreground/70"><a href="tel:+9779851405916" className="hover:text-white transition-colors">+977 9851405916</a></p>
                   </div>
                 </motion.div>
                 
@@ -269,7 +269,10 @@ export default function Home() {
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-white mb-1">Email</h4>
-                    <p className="text-secondary-foreground/70">projects@mahakaliengineers.com<br/>info@mahakaliengineers.com</p>
+                    <p className="text-secondary-foreground/70">
+                      <a href="mailto:mahakaliengineers885@gmail.com" className="hover:text-white transition-colors">mahakaliengineers885@gmail.com</a><br/>
+                      <a href="https://mahakaliengineers.com.np" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">mahakaliengineers.com.np</a>
+                    </p>
                   </div>
                 </motion.div>
               </div>
@@ -297,7 +300,7 @@ export default function Home() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">Phone Number</label>
-                  <Input className="rounded-none border-border bg-muted/50 h-12" type="tel" placeholder="+91" />
+                  <Input className="rounded-none border-border bg-muted/50 h-12" type="tel" placeholder="+977" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">Project Details</label>
@@ -314,16 +317,30 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="bg-[#111111] text-white/50 py-12 border-t border-white/10">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center">
-            <img src={logoImg} alt="Mahakali Engineers and Developers" className="h-12 w-auto object-contain" style={{ filter: "brightness(0) invert(1)" }} />
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
+            <div className="flex items-center">
+              <img src={logoImg} alt="Mahakali Engineers and Developers" className="h-12 w-auto object-contain" style={{ filter: "brightness(0) invert(1)" }} />
+            </div>
+            <div className="flex flex-col md:flex-row items-center gap-6 text-sm">
+              <a href="tel:+9779851405916" className="hover:text-white transition-colors flex items-center gap-2">
+                <Phone className="h-4 w-4" /> +977 9851405916
+              </a>
+              <a href="mailto:mahakaliengineers885@gmail.com" className="hover:text-white transition-colors flex items-center gap-2">
+                <Mail className="h-4 w-4" /> mahakaliengineers885@gmail.com
+              </a>
+              <span className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> Chabahil-07, Kathmandu
+              </span>
+            </div>
           </div>
-          <p className="text-sm text-center md:text-left">
-            &copy; {new Date().getFullYear()} Mahakali Engineers and Developers Pvt. Ltd. All rights reserved.
-          </p>
-          <div className="flex items-center gap-6 text-sm">
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+          <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
+            <p className="text-center md:text-left">
+              &copy; {new Date().getFullYear()} Mahakali Engineers and Developers Pvt. Ltd. All rights reserved.
+            </p>
+            <a href="https://mahakaliengineers.com.np" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              mahakaliengineers.com.np
+            </a>
           </div>
         </div>
       </footer>
