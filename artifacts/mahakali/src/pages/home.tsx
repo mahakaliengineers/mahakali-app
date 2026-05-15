@@ -196,6 +196,63 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Clients & Partners Strip */}
+      <section className="py-14 bg-muted/40 border-y border-border overflow-hidden">
+        <div className="container mx-auto px-6 mb-8">
+          <motion.p
+            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
+            className="text-center text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground"
+          >
+            Trusted By Leading Organizations Across Nepal
+          </motion.p>
+        </div>
+        <div className="relative overflow-hidden">
+          {/* Fade edges */}
+          <div className="absolute left-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-r from-muted/40 to-transparent pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-l from-muted/40 to-transparent pointer-events-none" />
+          <div className="animate-marquee">
+            {[
+              { name: "Nepal Electricity Authority", abbr: "NEA" },
+              { name: "Department of Roads", abbr: "DoR" },
+              { name: "Kathmandu Metropolitan City", abbr: "KMC" },
+              { name: "Nepal Infrastructure Bank", abbr: "NIFRA" },
+              { name: "Tribhuvan University", abbr: "TU" },
+              { name: "Civil Bank Ltd.", abbr: "CBL" },
+              { name: "Hetauda Cement Industry", abbr: "HCI" },
+              { name: "Nepal Telecom", abbr: "NT" },
+              { name: "Department of Urban Development", abbr: "DUDBC" },
+              { name: "Shangrila Development Bank", abbr: "SDB" },
+              /* duplicate set for seamless loop */
+              { name: "Nepal Electricity Authority", abbr: "NEA" },
+              { name: "Department of Roads", abbr: "DoR" },
+              { name: "Kathmandu Metropolitan City", abbr: "KMC" },
+              { name: "Nepal Infrastructure Bank", abbr: "NIFRA" },
+              { name: "Tribhuvan University", abbr: "TU" },
+              { name: "Civil Bank Ltd.", abbr: "CBL" },
+              { name: "Hetauda Cement Industry", abbr: "HCI" },
+              { name: "Nepal Telecom", abbr: "NT" },
+              { name: "Department of Urban Development", abbr: "DUDBC" },
+              { name: "Shangrila Development Bank", abbr: "SDB" },
+            ].map((partner, i) => (
+              <div
+                key={i}
+                className="flex-shrink-0 mx-10 flex flex-col items-center gap-2 group"
+                data-testid={`partner-logo-${i}`}
+              >
+                <div className="w-16 h-16 rounded-full border-2 border-border bg-background group-hover:border-primary transition-colors duration-300 flex items-center justify-center">
+                  <span className="text-xs font-black text-muted-foreground group-hover:text-primary transition-colors duration-300 tracking-tight text-center leading-tight px-1">
+                    {partner.abbr}
+                  </span>
+                </div>
+                <span className="text-[11px] text-muted-foreground font-medium text-center max-w-[90px] leading-tight group-hover:text-foreground transition-colors duration-300">
+                  {partner.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* About Section */}
       <section id="about" className="py-24 md:py-32 bg-background">
         <div className="container mx-auto px-6">
