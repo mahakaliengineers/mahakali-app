@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, HardHat, ShieldCheck, Factory, ChevronRight, MapPin, Mail, Phone, ArrowUpRight } from "lucide-react";
+import { Building2, HardHat, ShieldCheck, Factory, ChevronRight, MapPin, Mail, Phone, ArrowUpRight, Ruler, Layers, ClipboardList, Microscope, Home as HomeIcon, Warehouse, Hammer, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -153,33 +153,84 @@ export default function Home() {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-24 md:py-32 bg-muted/30">
+      <section id="services" className="py-24 md:py-32">
         <div className="container mx-auto px-6">
-          <motion.div 
+          <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={FADE_UP}
             className="max-w-3xl mb-16"
           >
-            <h2 className="text-3xl md:text-5xl font-display font-bold mb-6">Capabilities & Expertise</h2>
-            <p className="text-lg text-muted-foreground">Comprehensive construction solutions backed by advanced machinery and elite engineering teams.</p>
+            <h2 className="text-3xl md:text-5xl font-display font-bold mb-6">Our Services</h2>
+            <p className="text-lg text-muted-foreground">Two pillars of excellence — precise engineering and dependable construction — working together on every project.</p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              { icon: Building2, title: "Commercial Complexes", desc: "High-rise office buildings, retail spaces, and IT parks built for the modern workforce." },
-              { icon: Factory, title: "Industrial Projects", desc: "Heavy-duty manufacturing plants, warehouses, and logistics hubs requiring specialized structural integrity." },
-              { icon: ShieldCheck, title: "Civil Infrastructure", desc: "Bridges, highways, and public works engineered to withstand the test of time and traffic." },
-              { icon: HardHat, title: "Residential Development", desc: "Premium residential towers and gated communities focusing on safety and structural brilliance." }
-            ].map((service, i) => (
-              <motion.div 
-                key={i}
-                initial="hidden" whileInView="visible" viewport={{ once: true }} variants={FADE_UP}
-                className="bg-card border border-border p-8 hover:border-primary transition-colors group"
-              >
-                <service.icon className="h-12 w-12 text-primary mb-6 group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
-                <h3 className="text-xl font-display font-bold mb-4">{service.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{service.desc}</p>
+          <div className="grid lg:grid-cols-2 gap-0 border border-border">
+            {/* Engineering Side */}
+            <motion.div
+              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={STAGGER}
+              className="bg-secondary text-secondary-foreground p-10 md:p-14"
+            >
+              <motion.div variants={FADE_UP} className="flex items-center gap-4 mb-10">
+                <div className="w-12 h-12 bg-primary flex items-center justify-center shrink-0">
+                  <Ruler className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-primary text-xs font-bold uppercase tracking-widest mb-0.5">Division 01</p>
+                  <h3 className="text-2xl md:text-3xl font-display font-bold text-white">Engineering</h3>
+                </div>
               </motion.div>
-            ))}
+              <div className="space-y-6">
+                {[
+                  { icon: Layers, title: "Structural Design & Analysis", desc: "Detailed structural calculations, load analysis, and design of foundations, frames, and retaining systems." },
+                  { icon: Microscope, title: "Soil & Site Investigation", desc: "Geotechnical surveys, soil testing, and site feasibility studies to ensure ground-safe foundations." },
+                  { icon: ClipboardList, title: "Project Planning & Management", desc: "End-to-end project scheduling, resource allocation, cost estimation, and quality control oversight." },
+                  { icon: ShieldCheck, title: "Civil & Infrastructure Engineering", desc: "Road alignment, drainage design, bridge engineering, and public infrastructure planning." },
+                ].map((item, i) => (
+                  <motion.div key={i} variants={FADE_UP} className="flex gap-4 group">
+                    <div className="w-10 h-10 bg-white/10 flex items-center justify-center shrink-0 group-hover:bg-primary transition-colors duration-300">
+                      <item.icon className="h-5 w-5 text-white" strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white mb-1">{item.title}</h4>
+                      <p className="text-secondary-foreground/60 text-sm leading-relaxed">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Construction Side */}
+            <motion.div
+              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={STAGGER}
+              className="bg-muted/30 p-10 md:p-14 border-l border-border"
+            >
+              <motion.div variants={FADE_UP} className="flex items-center gap-4 mb-10">
+                <div className="w-12 h-12 bg-accent flex items-center justify-center shrink-0">
+                  <HardHat className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-accent text-xs font-bold uppercase tracking-widest mb-0.5">Division 02</p>
+                  <h3 className="text-2xl md:text-3xl font-display font-bold">Construction</h3>
+                </div>
+              </motion.div>
+              <div className="space-y-6">
+                {[
+                  { icon: HomeIcon, title: "Residential Buildings", desc: "Bungalows, apartment complexes, and gated housing projects built with premium materials and finish." },
+                  { icon: Building2, title: "Commercial Structures", desc: "Office towers, shopping centres, hotels, and mixed-use complexes delivered on time and within budget." },
+                  { icon: Factory, title: "Industrial Construction", desc: "Factories, warehouses, processing plants, and heavy-load facilities with specialized structural requirements." },
+                  { icon: Route, title: "Roads, Bridges & Infrastructure", desc: "Highway construction, suspension and girder bridges, culverts, and government civil works across Nepal." },
+                ].map((item, i) => (
+                  <motion.div key={i} variants={FADE_UP} className="flex gap-4 group">
+                    <div className="w-10 h-10 bg-secondary/10 flex items-center justify-center shrink-0 group-hover:bg-accent group-hover:text-white transition-colors duration-300">
+                      <item.icon className="h-5 w-5 text-secondary group-hover:text-white transition-colors duration-300" strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold mb-1">{item.title}</h4>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -193,7 +244,7 @@ export default function Home() {
           >
             <div className="max-w-2xl">
               <h2 className="text-3xl md:text-5xl font-display font-bold mb-6">Featured Projects</h2>
-              <p className="text-lg text-muted-foreground">A selection of our landmark developments across India.</p>
+              <p className="text-lg text-muted-foreground">A selection of our landmark developments across Nepal.</p>
             </div>
             <Button variant="outline" className="rounded-none self-start md:self-auto border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
               View All Projects
