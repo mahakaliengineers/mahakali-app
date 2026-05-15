@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Mahakali Engineers and Developers"
+version = "1.0.0"
+id = "artifacts/mahakali"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26128
+
+[services.development]
+run = "pnpm --filter @workspace/mahakali run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mahakali", "run", "build" ]
+publicDir = "artifacts/mahakali/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26128"
+BASE_PATH = "/"
