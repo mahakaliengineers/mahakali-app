@@ -253,6 +253,90 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 4 Pillars Section */}
+      <section className="py-24 md:py-32 bg-secondary text-white">
+        <div className="container mx-auto px-6">
+          <motion.div
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={STAGGER}
+            className="text-center mb-16"
+          >
+            <motion.p variants={FADE_UP} className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-3">Our Core Divisions</motion.p>
+            <motion.h2 variants={FADE_UP} className="text-3xl md:text-5xl font-display font-bold text-white">
+              Four Pillars of Excellence
+            </motion.h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-0 border border-white/10">
+            {[
+              {
+                num: "01",
+                title: "Construction",
+                color: "bg-primary",
+                desc: "From ground-breaking to handover — residential, commercial, and industrial structures built to last with precision and care.",
+                icon: HardHat,
+                items: ["Residential Buildings", "Commercial Complexes", "Industrial Facilities", "Government Contracts"]
+              },
+              {
+                num: "02",
+                title: "Engineering",
+                color: "bg-accent",
+                desc: "Structural integrity starts with rigorous engineering. Our licensed engineers handle design, analysis, and site supervision.",
+                icon: Ruler,
+                items: ["Structural Design", "Civil Engineering", "Soil Investigation", "Safety Audits"]
+              },
+              {
+                num: "03",
+                title: "Consulting",
+                color: "bg-primary",
+                desc: "Expert guidance at every stage — from feasibility studies and project planning to cost estimation and regulatory compliance.",
+                icon: ClipboardList,
+                items: ["Feasibility Studies", "Project Management", "Cost Estimation", "Regulatory Approvals"]
+              },
+              {
+                num: "04",
+                title: "Designs",
+                color: "bg-accent",
+                desc: "Architecture that speaks and spaces that inspire. We create functional, aesthetic designs tailored to every client's vision.",
+                icon: Layers,
+                items: ["Architectural Design", "Interior Planning", "3D Visualization", "Master Planning"]
+              }
+            ].map((pillar, i) => (
+              <motion.div
+                key={i}
+                initial="hidden" whileInView="visible" viewport={{ once: true }} variants={FADE_UP}
+                className="group relative p-10 border-r border-white/10 last:border-r-0 hover:bg-white/5 transition-colors duration-300 cursor-default overflow-hidden"
+                data-testid={`pillar-${pillar.title.toLowerCase()}`}
+              >
+                {/* Background number */}
+                <span className="absolute -right-4 top-4 text-[8rem] font-black text-white/5 leading-none select-none pointer-events-none group-hover:text-white/[0.07] transition-colors">
+                  {pillar.num}
+                </span>
+
+                {/* Top accent line */}
+                <div className={`h-1 w-12 ${pillar.color} mb-8`} />
+
+                {/* Icon */}
+                <div className={`w-14 h-14 ${pillar.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                  <pillar.icon className="h-7 w-7 text-white" strokeWidth={1.5} />
+                </div>
+
+                <h3 className="text-2xl font-display font-bold text-white mb-4">{pillar.title}</h3>
+                <p className="text-white/60 text-sm leading-relaxed mb-8">{pillar.desc}</p>
+
+                <ul className="space-y-2">
+                  {pillar.items.map((item, j) => (
+                    <li key={j} className="flex items-center gap-2 text-sm text-white/50 group-hover:text-white/70 transition-colors">
+                      <ChevronRight className="h-3 w-3 text-primary shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* About Section */}
       <section id="about" className="py-24 md:py-32 bg-background">
         <div className="container mx-auto px-6">
