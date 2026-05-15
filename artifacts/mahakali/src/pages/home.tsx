@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Building2, HardHat, ShieldCheck, Factory, ChevronRight, MapPin, Mail, Phone, ArrowUpRight, Ruler, Layers, ClipboardList, Microscope, Home as HomeIcon, Warehouse, Hammer, Route } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -395,6 +396,24 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* WhatsApp Floating Button */}
+      <motion.a
+        href="https://wa.me/9779851405916"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-testid="link-whatsapp-float"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 1.5, type: "spring", stiffness: 260, damping: 20 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg flex items-center justify-center"
+        title="Chat with us on WhatsApp"
+      >
+        <SiWhatsapp className="w-7 h-7" />
+        <span className="sr-only">Chat on WhatsApp</span>
+      </motion.a>
     </div>
   );
 }
