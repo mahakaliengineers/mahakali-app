@@ -328,6 +328,20 @@ export default function Home() {
                   </div>
                 </motion.div>
               </div>
+
+              {/* Google Maps */}
+              <motion.div variants={FADE_UP} className="mt-10 w-full h-52 overflow-hidden border border-white/10">
+                <iframe
+                  title="Mahakali Engineers Office Location"
+                  src="https://maps.google.com/maps?q=Chabahil+Kathmandu+Nepal&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0, filter: "invert(90%) hue-rotate(180deg) grayscale(20%)" }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </motion.div>
             </motion.div>
 
             <motion.div 
