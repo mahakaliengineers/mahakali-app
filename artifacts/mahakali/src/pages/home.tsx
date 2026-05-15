@@ -202,9 +202,9 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { img: project1Img, title: "Nexus Tech Park", category: "Commercial", location: "Bengaluru" },
-              { img: project2Img, title: "Godavari Valley Bridge", category: "Infrastructure", location: "Maharashtra" },
-              { img: project3Img, title: "Apex Steel Plant", category: "Industrial", location: "Gujarat" }
+              { img: project1Img, title: "Bagmati Commercial Tower", category: "Commercial", location: "Kathmandu, Nepal" },
+              { img: project2Img, title: "Trishuli River Bridge", category: "Infrastructure", location: "Nuwakot, Nepal" },
+              { img: project3Img, title: "Hetauda Industrial Complex", category: "Industrial", location: "Hetauda, Nepal" }
             ].map((project, i) => (
               <motion.div 
                 key={i}
