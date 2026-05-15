@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 // @ts-ignore
+import logoImg from "@/assets/logo.png";
+// @ts-ignore
 import heroImg from "@/assets/images/hero.png";
 // @ts-ignore
 import project1Img from "@/assets/images/project-1.png";
@@ -44,9 +46,8 @@ export default function Home() {
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-background/90 backdrop-blur-md border-b border-border shadow-sm py-4" : "bg-transparent py-6"}`}>
         <div className="container mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-display font-bold text-xl tracking-tight cursor-pointer" onClick={() => scrollTo("home")}>
-            <div className="w-8 h-8 bg-primary text-primary-foreground flex items-center justify-center text-lg leading-none">M</div>
-            <span className={scrolled ? "text-foreground" : "text-white"}>MAHAKALI</span>
+          <div className="flex items-center cursor-pointer" onClick={() => scrollTo("home")}>
+            <img src={logoImg} alt="Mahakali Engineers and Developers" className="h-14 w-auto object-contain" style={{ filter: scrolled ? "none" : "brightness(0) invert(1)" }} />
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium">
             <button onClick={() => scrollTo("about")} className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90"}`}>About</button>
@@ -314,9 +315,8 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-[#111111] text-white/50 py-12 border-t border-white/10">
         <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2 font-display font-bold text-xl tracking-tight text-white">
-            <div className="w-6 h-6 bg-primary text-primary-foreground flex items-center justify-center text-sm leading-none">M</div>
-            <span>MAHAKALI</span>
+          <div className="flex items-center">
+            <img src={logoImg} alt="Mahakali Engineers and Developers" className="h-12 w-auto object-contain" style={{ filter: "brightness(0) invert(1)" }} />
           </div>
           <p className="text-sm text-center md:text-left">
             &copy; {new Date().getFullYear()} Mahakali Engineers and Developers Pvt. Ltd. All rights reserved.
