@@ -59,8 +59,8 @@
   --popover: 0 0% 100%;
   --popover-foreground: 220 15% 15%;
 
-  /* Primary: Burnt Orange / Amber */
-  --primary: 24 95% 53%;
+  /* Primary: Logo Red #E8192C */
+  --primary: 352 83% 50%;
   --primary-foreground: 0 0% 100%;
 
   /* Secondary: Deep Charcoal */
@@ -68,20 +68,20 @@
   --secondary-foreground: 0 0% 100%;
 
   /* Muted */
-  --muted: 40 10% 90%;
-  --muted-foreground: 220 10% 40%;
+  --muted: 220 10% 92%;
+  --muted-foreground: 220 10% 42%;
 
-  /* Accent */
-  --accent: 40 20% 90%;
-  --accent-foreground: 220 15% 15%;
+  /* Accent: Logo Blue #1B5BBE */
+  --accent: 215 74% 42%;
+  --accent-foreground: 0 0% 100%;
 
   /* Destructive */
-  --destructive: 0 84% 60%;
+  --destructive: 352 83% 50%;
   --destructive-foreground: 0 0% 100%;
 
   --border: 220 10% 85%;
   --input: 220 10% 85%;
-  --ring: 24 95% 53%;
+  --ring: 352 83% 50%;
 
   --radius: 0rem; 
 }
@@ -96,7 +96,7 @@
   --popover: 220 20% 15%;
   --popover-foreground: 40 20% 96%;
 
-  --primary: 24 95% 53%;
+  --primary: 352 83% 50%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 220 15% 25%;
@@ -105,15 +105,15 @@
   --muted: 220 15% 20%;
   --muted-foreground: 220 10% 70%;
 
-  --accent: 220 15% 20%;
-  --accent-foreground: 40 20% 96%;
+  --accent: 215 74% 42%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 62% 30%;
+  --destructive: 352 83% 50%;
   --destructive-foreground: 40 20% 96%;
 
   --border: 220 15% 25%;
   --input: 220 15% 25%;
-  --ring: 24 95% 53%;
+  --ring: 352 83% 50%;
 }
 
 @layer base {
