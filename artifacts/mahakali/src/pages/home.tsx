@@ -146,8 +146,43 @@ const AREA_UNITS: { label: string; toSqm: number }[] = [
   { label: "Kattha", toSqm: KATTHA_TO_SQM },
 ];
 
+// ─── Cost Estimator Data ─────────────────────────────────────────────────────
+
+const COST_RATES: Record<string, Record<string, number>> = {
+  residential: { basic: 1800, standard: 2600, premium: 3800, luxury: 6000 },
+  commercial:  { basic: 2400, standard: 3400, premium: 5000, luxury: 7500 },
+  industrial:  { basic: 1500, standard: 2100, premium: 3000, luxury: 4000 },
+};
+
+const COST_BREAKDOWN = [
+  { label: "Civil / Structure",      pct: 0.40, color: "bg-primary" },
+  { label: "Finishing & Interior",   pct: 0.22, color: "bg-accent" },
+  { label: "Electrical Works",       pct: 0.10, color: "bg-yellow-500" },
+  { label: "Plumbing & Sanitary",    pct: 0.08, color: "bg-green-500" },
+  { label: "Doors & Windows",        pct: 0.08, color: "bg-purple-500" },
+  { label: "Misc / Contingency",     pct: 0.12, color: "bg-orange-500" },
+];
+
+const AREA_INPUT_UNITS: { label: string; toSqft: number }[] = [
+  { label: "Square Feet (sq.ft)", toSqft: 1 },
+  { label: "Square Meter (sq.m)", toSqft: 10.7639 },
+  { label: "Ropani", toSqft: ROPANI_TO_SQFT },
+  { label: "Aana", toSqft: ROPANI_TO_SQFT / 16 },
+  { label: "Paisa", toSqft: ROPANI_TO_SQFT / 64 },
+  { label: "Kattha", toSqft: 3645 },
+  { label: "Dhur", toSqft: 182.25 },
+];
+
+function fmtNPR(n: number) {
+  if (n >= 10_000_000) return `Rs. ${(n / 10_000_000).toFixed(2)} Crore`;
+  if (n >= 100_000)    return `Rs. ${(n / 100_000).toFixed(2)} Lakh`;
+  return `Rs. ${Math.round(n).toLocaleString("en-IN")}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function CalculatorTool() {
-  const [tab, setTab] = useState<"land" | "length" | "area">("land");
+  const [tab, setTab] = useState<"land" | "length" | "area" | "cost">("land");
   const [landSystem, setLandSystem] = useState<LandSystem>("ropani");
   const [landInput, setLandInput] = useState("");
   const [landUnit, setLandUnit] = useState("ropani");
@@ -162,6 +197,22 @@ function CalculatorTool() {
   const [areaFrom, setAreaFrom] = useState(0);
   const [areaTo, setAreaTo] = useState(4);
   const [areaResult, setAreaResult] = useState("");
+
+  // Cost estimator state
+  const [costArea, setCostArea] = useState("");
+  const [costAreaUnit, setCostAreaUnit] = useState(0);
+  const [costFloors, setCostFloors] = useState(1);
+  const [costBuildingType, setCostBuildingType] = useState("residential");
+  const [costGrade, setCostGrade] = useState("standard");
+  const [costResult, setCostResult] = useState<{ total: number; perSqft: number; sqft: number } | null>(null);
+
+  useEffect(() => {
+    const v = parseFloat(costArea);
+    if (isNaN(v) || v <= 0) { setCostResult(null); return; }
+    const sqft = v * AREA_INPUT_UNITS[costAreaUnit].toSqft * costFloors;
+    const perSqft = COST_RATES[costBuildingType][costGrade];
+    setCostResult({ total: sqft * perSqft, perSqft, sqft });
+  }, [costArea, costAreaUnit, costFloors, costBuildingType, costGrade]);
 
   const convertLand = useCallback(() => {
     const v = parseFloat(landInput);
@@ -212,6 +263,7 @@ function CalculatorTool() {
           { key: "land", label: "🏔 Land Units (Nepal)" },
           { key: "length", label: "📏 Length" },
           { key: "area", label: "⬜ Area" },
+          { key: "cost", label: "🏗 Cost Estimator" },
         ].map(t => (
           <button
             key={t.key}
@@ -362,6 +414,178 @@ function CalculatorTool() {
                 </>
               ) : (
                 <p className="text-white/30 text-sm">Enter a value to convert</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cost Estimator Tab */}
+      {tab === "cost" && (
+        <div>
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            {/* Inputs */}
+            <div className="space-y-5">
+              {/* Building Type */}
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Building Type</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: "residential", icon: "🏠", label: "Residential" },
+                    { key: "commercial",  icon: "🏢", label: "Commercial" },
+                    { key: "industrial",  icon: "🏭", label: "Industrial" },
+                  ].map(bt => (
+                    <button
+                      key={bt.key}
+                      onClick={() => setCostBuildingType(bt.key)}
+                      className={`py-3 px-2 rounded text-xs font-bold flex flex-col items-center gap-1 transition-colors border ${
+                        costBuildingType === bt.key
+                          ? "bg-primary border-primary text-white"
+                          : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <span className="text-xl">{bt.icon}</span>
+                      {bt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quality Grade */}
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Construction Quality</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { key: "basic",    label: "Basic",    sub: "Economy" },
+                    { key: "standard", label: "Standard", sub: "Mid-range" },
+                    { key: "premium",  label: "Premium",  sub: "High-end" },
+                    { key: "luxury",   label: "Luxury",   sub: "Top-tier" },
+                  ].map(g => (
+                    <button
+                      key={g.key}
+                      onClick={() => setCostGrade(g.key)}
+                      className={`py-3 rounded text-xs font-bold flex flex-col items-center gap-0.5 transition-colors border ${
+                        costGrade === g.key
+                          ? "bg-accent border-accent text-white"
+                          : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <span>{g.label}</span>
+                      <span className="font-normal opacity-70">{g.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Plot Area */}
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Plot / Floor Area (per floor)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 1500"
+                    value={costArea}
+                    onChange={e => setCostArea(e.target.value)}
+                    className={inputCls + " flex-1"}
+                  />
+                  <select
+                    value={costAreaUnit}
+                    onChange={e => setCostAreaUnit(Number(e.target.value))}
+                    className={selectCls + " w-40"}
+                  >
+                    {AREA_INPUT_UNITS.map((u, i) => (
+                      <option key={i} value={i} className="bg-gray-900">{u.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Number of Floors */}
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">
+                  Number of Floors: <span className="text-white font-bold">{costFloors}</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setCostFloors(f => Math.max(1, f - 1))}
+                    className="w-10 h-10 rounded bg-white/10 text-white font-bold hover:bg-white/20 transition-colors text-lg"
+                  >−</button>
+                  <div className="flex-1 flex gap-1">
+                    {[1,2,3,4,5,6,7,8].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => setCostFloors(n)}
+                        className={`flex-1 h-10 rounded text-xs font-bold transition-colors border ${
+                          costFloors === n
+                            ? "bg-primary border-primary text-white"
+                            : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
+                        }`}
+                      >{n}</button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setCostFloors(f => Math.min(20, f + 1))}
+                    className="w-10 h-10 rounded bg-white/10 text-white font-bold hover:bg-white/20 transition-colors text-lg"
+                  >+</button>
+                </div>
+              </div>
+
+              {/* Rate info */}
+              <div className="p-3 bg-white/5 border border-white/10 rounded text-xs text-white/40">
+                Current rate: <span className="text-white/70 font-bold">
+                  Rs. {COST_RATES[costBuildingType][costGrade].toLocaleString("en-IN")} / sq.ft
+                </span> · Rates are indicative estimates for Kathmandu Valley (2025)
+              </div>
+            </div>
+
+            {/* Results Panel */}
+            <div className="flex flex-col gap-4">
+              {/* Total Cost */}
+              <div className="p-6 border-2 border-primary/40 rounded bg-primary/5 text-center">
+                <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Estimated Total Cost</p>
+                {costResult ? (
+                  <>
+                    <p className="text-4xl font-mono font-black text-primary leading-tight">
+                      {fmtNPR(costResult.total)}
+                    </p>
+                    <p className="text-white/40 text-xs mt-1">
+                      {Math.round(costResult.sqft).toLocaleString("en-IN")} sq.ft total built-up area
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-white/30 text-sm py-4">Fill in the details to see estimate</p>
+                )}
+              </div>
+
+              {/* Breakdown */}
+              {costResult && (
+                <div className="border border-white/10 rounded overflow-hidden">
+                  <p className="text-xs text-white/50 uppercase tracking-wider px-4 py-3 border-b border-white/10 bg-white/5">
+                    Cost Breakdown
+                  </p>
+                  {COST_BREAKDOWN.map((item, i) => {
+                    const amt = costResult.total * item.pct;
+                    const barW = Math.round(item.pct * 100);
+                    return (
+                      <div key={i} className="px-4 py-3 border-b border-white/5 last:border-0">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm text-white/70">{item.label}</span>
+                          <span className="text-sm font-mono font-bold text-white">{fmtNPR(amt)}</span>
+                        </div>
+                        <div className="h-1 bg-white/10 rounded overflow-hidden">
+                          <div className={`h-full ${item.color} rounded`} style={{ width: `${barW}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {costResult && (
+                <div className="p-3 bg-white/5 border border-white/10 rounded text-xs text-white/40 leading-relaxed">
+                  ⚠ This is a rough estimate only. Actual costs vary based on site conditions, material prices, design complexity, and labour rates. Contact Mahakali Engineers for a detailed quote.
+                </div>
               )}
             </div>
           </div>
