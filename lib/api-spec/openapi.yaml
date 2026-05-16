@@ -1,22 +1,22 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Mahakali Engineers Client Portal API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: portal
+  - name: admin
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +24,806 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /portal/auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Invalid credentials
+
+  /portal/auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+
+  /portal/auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Not authenticated
+
+  /portal/projects:
+    get:
+      operationId: listProjects
+      tags: [portal]
+      summary: List projects for current client (or all for admin)
+      responses:
+        "200":
+          description: Projects list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+
+  /portal/projects/{id}:
+    get:
+      operationId: getProject
+      tags: [portal]
+      summary: Get project detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetail"
+        "404":
+          description: Not found
+
+  /portal/projects/{id}/photos:
+    get:
+      operationId: listPhotos
+      tags: [portal]
+      summary: List project photos
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Photo"
+
+  /portal/projects/{id}/documents:
+    get:
+      operationId: listDocuments
+      tags: [portal]
+      summary: List project documents
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+
+  /portal/projects/{id}/updates:
+    get:
+      operationId: listUpdates
+      tags: [portal]
+      summary: List project updates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Update"
+
+  /portal/projects/{id}/payments:
+    get:
+      operationId: listPayments
+      tags: [portal]
+      summary: List project payments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+
+  /portal/projects/{id}/milestones:
+    get:
+      operationId: listMilestones
+      tags: [portal]
+      summary: List project milestones
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Milestones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Milestone"
+
+  /admin/clients:
+    get:
+      operationId: listClients
+      tags: [admin]
+      summary: List all clients
+      responses:
+        "200":
+          description: Clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClientUser"
+    post:
+      operationId: createClient
+      tags: [admin]
+      summary: Create a new client account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientUser"
+
+  /admin/projects:
+    post:
+      operationId: createProject
+      tags: [admin]
+      summary: Create a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+
+  /admin/projects/{id}:
+    patch:
+      operationId: updateProject
+      tags: [admin]
+      summary: Update project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+
+  /admin/projects/{id}/photos:
+    post:
+      operationId: addPhoto
+      tags: [admin]
+      summary: Add photo to project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PhotoInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Photo"
+
+  /admin/photos/{id}:
+    delete:
+      operationId: deletePhoto
+      tags: [admin]
+      summary: Delete a photo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /admin/projects/{id}/documents:
+    post:
+      operationId: addDocument
+      tags: [admin]
+      summary: Add document to project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+
+  /admin/projects/{id}/updates:
+    post:
+      operationId: addUpdate
+      tags: [admin]
+      summary: Post an update to project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Update"
+
+  /admin/projects/{id}/milestones:
+    post:
+      operationId: addMilestone
+      tags: [admin]
+      summary: Add milestone to project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MilestoneInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Milestone"
+
+  /admin/milestones/{id}:
+    patch:
+      operationId: updateMilestone
+      tags: [admin]
+      summary: Update milestone (mark complete)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MilestoneUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Milestone"
+
+  /admin/projects/{id}/payments:
+    post:
+      operationId: addPayment
+      tags: [admin]
+      summary: Add payment entry to project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /admin/payments/{id}:
+    patch:
+      operationId: updatePayment
+      tags: [admin]
+      summary: Update payment status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /admin/storage/upload-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [admin]
+      summary: Get presigned upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlInput"
+      responses:
+        "200":
+          description: Upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    AuthUser:
+      type: object
+      required: [id, name, email, role]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+
+    ClientUser:
+      type: object
+      required: [id, name, email, role, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        role:
+          type: string
+        createdAt:
+          type: string
+
+    ClientInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        phone:
+          type: string
+
+    Project:
+      type: object
+      required: [id, clientId, title, status, progress, createdAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        title:
+          type: string
+        location:
+          type: ["string", "null"]
+        type:
+          type: ["string", "null"]
+        status:
+          type: string
+        progress:
+          type: integer
+        description:
+          type: ["string", "null"]
+        startDate:
+          type: ["string", "null"]
+        endDate:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    ProjectDetail:
+      type: object
+      required: [id, clientId, title, status, progress, createdAt, client]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        title:
+          type: string
+        location:
+          type: ["string", "null"]
+        type:
+          type: ["string", "null"]
+        status:
+          type: string
+        progress:
+          type: integer
+        description:
+          type: ["string", "null"]
+        startDate:
+          type: ["string", "null"]
+        endDate:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        client:
+          $ref: "#/components/schemas/ClientUser"
+
+    ProjectInput:
+      type: object
+      required: [clientId, title]
+      properties:
+        clientId:
+          type: integer
+        title:
+          type: string
+        location:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        progress:
+          type: integer
+        description:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+
+    ProjectUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        location:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        progress:
+          type: integer
+        description:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+
+    Photo:
+      type: object
+      required: [id, projectId, url, uploadedAt]
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        url:
+          type: string
+        caption:
+          type: ["string", "null"]
+        uploadedAt:
+          type: string
+
+    PhotoInput:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+        caption:
+          type: string
+
+    Document:
+      type: object
+      required: [id, projectId, name, url, type, uploadedAt]
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        name:
+          type: string
+        url:
+          type: string
+        type:
+          type: string
+        uploadedAt:
+          type: string
+
+    DocumentInput:
+      type: object
+      required: [name, url]
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+        type:
+          type: string
+
+    Update:
+      type: object
+      required: [id, projectId, message, postedAt]
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        message:
+          type: string
+        postedAt:
+          type: string
+
+    UpdateInput:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    Milestone:
+      type: object
+      required: [id, projectId, title, order, createdAt]
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        order:
+          type: integer
+        completedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    MilestoneInput:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        order:
+          type: integer
+
+    MilestoneUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        completedAt:
+          type: ["string", "null"]
+
+    Payment:
+      type: object
+      required: [id, projectId, label, amount, status, createdAt]
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        label:
+          type: string
+        amount:
+          type: string
+        status:
+          type: string
+        dueDate:
+          type: ["string", "null"]
+        paidAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    PaymentInput:
+      type: object
+      required: [label, amount]
+      properties:
+        label:
+          type: string
+        amount:
+          type: string
+        status:
+          type: string
+        dueDate:
+          type: string
+
+    PaymentUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+        paidAt:
+          type: string
+
+    UploadUrlInput:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+        contentType:
+          type: string
+
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string

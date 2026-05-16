@@ -1,10 +1,24 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import contactRouter from "./contact";
+import portalAuthRouter from "./portal/auth";
+import portalProjectsRouter from "./portal/projects";
+import portalResourcesRouter from "./portal/resources";
+import adminClientsRouter from "./admin/clients";
+import adminProjectsRouter from "./admin/projects";
+import adminResourcesRouter from "./admin/resources";
+import adminStorageRouter from "./admin/storage";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(contactRouter);
+router.use(portalAuthRouter);
+router.use(portalProjectsRouter);
+router.use(portalResourcesRouter);
+router.use(adminClientsRouter);
+router.use(adminProjectsRouter);
+router.use(adminResourcesRouter);
+router.use(adminStorageRouter);
 
 export default router;
