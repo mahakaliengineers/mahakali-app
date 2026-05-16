@@ -595,6 +595,128 @@ function CalculatorTool() {
   );
 }
 
+// ─── Contact Form Component ───────────────────────────────────────────────────
+
+const PROJECT_TYPES = [
+  "Residential Building",
+  "Commercial Complex",
+  "Industrial Facility",
+  "Bridge / Infrastructure",
+  "Road Construction",
+  "Structural Consulting",
+  "Architectural Design",
+  "Other",
+];
+
+function ContactForm() {
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", projectType: "", message: "" });
+  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.firstName || !form.email || !form.message) return;
+    setStatus("sending");
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json() as { success?: boolean; error?: string };
+      if (!res.ok || !data.success) throw new Error(data.error || "Submission failed");
+      setStatus("success");
+      setForm({ firstName: "", lastName: "", email: "", phone: "", projectType: "", message: "" });
+    } catch (err: unknown) {
+      setStatus("error");
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    }
+  };
+
+  const inputCls = "w-full rounded-none border border-white/20 bg-white/5 h-12 px-4 text-white placeholder:text-white/30 focus:outline-none focus:border-primary text-sm transition-colors";
+  const labelCls = "block text-sm font-semibold text-white/80 mb-1";
+
+  if (status === "success") {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center relative z-10">
+        <div className="w-16 h-16 bg-green-500/10 border-2 border-green-500 rounded-full flex items-center justify-center mb-6">
+          <CheckCircle2 className="h-8 w-8 text-green-400" />
+        </div>
+        <h4 className="text-2xl font-display font-bold text-white mb-3">Inquiry Sent!</h4>
+        <p className="text-white/60 mb-2">Thank you! We've received your message and sent a confirmation to your email.</p>
+        <p className="text-white/40 text-sm mb-8">Our team will get back to you within 24 hours.</p>
+        <button onClick={() => setStatus("idle")} className="text-primary text-sm font-bold underline underline-offset-4 hover:text-primary/80 transition-colors">
+          Send another inquiry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="space-y-5 relative z-10" onSubmit={handleSubmit}>
+      <div className="grid md:grid-cols-2 gap-4">
+        <div>
+          <label className={labelCls}>First Name *</label>
+          <input required value={form.firstName} onChange={set("firstName")} className={inputCls} placeholder="Ram" />
+        </div>
+        <div>
+          <label className={labelCls}>Last Name</label>
+          <input value={form.lastName} onChange={set("lastName")} className={inputCls} placeholder="Sharma" />
+        </div>
+      </div>
+      <div>
+        <label className={labelCls}>Email Address *</label>
+        <input required type="email" value={form.email} onChange={set("email")} className={inputCls} placeholder="ram@example.com" />
+      </div>
+      <div>
+        <label className={labelCls}>Phone Number</label>
+        <input type="tel" value={form.phone} onChange={set("phone")} className={inputCls} placeholder="+977 98XXXXXXXX" />
+      </div>
+      <div>
+        <label className={labelCls}>Project Type</label>
+        <select value={form.projectType} onChange={set("projectType")} className={inputCls + " appearance-none cursor-pointer"}>
+          <option value="" className="bg-gray-900">Select project type...</option>
+          {PROJECT_TYPES.map(pt => <option key={pt} value={pt} className="bg-gray-900">{pt}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className={labelCls}>Project Details *</label>
+        <textarea
+          required
+          value={form.message}
+          onChange={set("message")}
+          rows={4}
+          className={inputCls + " h-auto py-3 resize-none"}
+          placeholder="Describe your project — location, size, timeline, budget range..."
+        />
+      </div>
+
+      {status === "error" && (
+        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded text-red-400 text-sm">
+          {errorMsg}
+        </div>
+      )}
+
+      <Button
+        type="submit"
+        disabled={status === "sending"}
+        className="w-full rounded-none h-14 text-base font-bold bg-primary hover:bg-primary/90 text-white mt-2 disabled:opacity-60"
+      >
+        {status === "sending" ? (
+          <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...</span>
+        ) : (
+          <span className="flex items-center gap-2">Submit Inquiry <ArrowRight className="h-5 w-5" /></span>
+        )}
+      </Button>
+      <p className="text-white/30 text-xs text-center">We'll reply within 24 hours. Your info is never shared.</p>
+    </form>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -1250,34 +1372,7 @@ export default function Home() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full" />
               <h3 className="text-2xl font-display font-bold mb-2">Request a Quote</h3>
               <p className="text-white/60 mb-8">Fill out the form below and our team will get back to you within 24 hours.</p>
-              
-              <form className="space-y-6 relative z-10" onSubmit={(e) => e.preventDefault()}>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-white/80">First Name</label>
-                    <Input className="rounded-none border-white/20 bg-white/5 h-12 text-white placeholder:text-white/30 focus-visible:ring-primary" placeholder="John" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-white/80">Last Name</label>
-                    <Input className="rounded-none border-white/20 bg-white/5 h-12 text-white placeholder:text-white/30 focus-visible:ring-primary" placeholder="Doe" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-white/80">Email Address</label>
-                  <Input className="rounded-none border-white/20 bg-white/5 h-12 text-white placeholder:text-white/30 focus-visible:ring-primary" type="email" placeholder="john@company.com" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-white/80">Phone Number</label>
-                  <Input className="rounded-none border-white/20 bg-white/5 h-12 text-white placeholder:text-white/30 focus-visible:ring-primary" type="tel" placeholder="+977" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-white/80">Project Details</label>
-                  <Textarea className="rounded-none border-white/20 bg-white/5 min-h-[120px] text-white placeholder:text-white/30 focus-visible:ring-primary" placeholder="Tell us about your project..." />
-                </div>
-                <Button className="w-full rounded-none h-14 text-base font-bold bg-primary hover:bg-primary/90 text-white mt-4" type="submit">
-                  Submit Inquiry <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </form>
+              <ContactForm />
             </motion.div>
           </div>
         </div>
