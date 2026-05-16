@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, useInView, useAnimation } from "framer-motion";
 import { 
   Building2, HardHat, ShieldCheck, Factory, ChevronRight, MapPin, Mail, Phone, 
@@ -59,6 +59,320 @@ function AnimatedCounter({ from, to, duration = 2, suffix = "" }: { from: number
   return <span ref={nodeRef}>{count}{suffix}</span>;
 }
 
+// ─── Nepal Land & Measurement Calculator ────────────────────────────────────
+
+const ROPANI_TO_SQM = 508.72;
+const ROPANI_TO_SQFT = 5476;
+const AANA_TO_SQM = ROPANI_TO_SQM / 16;
+const PAISA_TO_SQM = AANA_TO_SQM / 4;
+const DAAM_TO_SQM = PAISA_TO_SQM / 4;
+
+const BIGHA_TO_SQM = 6772.63;
+const KATTHA_TO_SQM = BIGHA_TO_SQM / 20;
+const DHUR_TO_SQM = KATTHA_TO_SQM / 20;
+
+type LandSystem = "ropani" | "bigha";
+interface LandResult { label: string; value: string }
+
+function calcRopaniSystem(value: number, unit: string): LandResult[] {
+  let sqm = 0;
+  if (unit === "ropani") sqm = value * ROPANI_TO_SQM;
+  else if (unit === "aana") sqm = value * AANA_TO_SQM;
+  else if (unit === "paisa") sqm = value * PAISA_TO_SQM;
+  else if (unit === "daam") sqm = value * DAAM_TO_SQM;
+
+  const ropani = sqm / ROPANI_TO_SQM;
+  const aana = sqm / AANA_TO_SQM;
+  const paisa = sqm / PAISA_TO_SQM;
+  const daam = sqm / DAAM_TO_SQM;
+  const sqft = sqm * 10.7639;
+  const hectare = sqm / 10000;
+
+  return [
+    { label: "Square Meters (sq.m)", value: sqm.toFixed(4) },
+    { label: "Square Feet (sq.ft)", value: sqft.toFixed(4) },
+    { label: "Hectare (ha)", value: hectare.toFixed(6) },
+    { label: "Ropani", value: ropani.toFixed(4) },
+    { label: "Aana", value: aana.toFixed(4) },
+    { label: "Paisa", value: paisa.toFixed(4) },
+    { label: "Daam", value: daam.toFixed(4) },
+  ];
+}
+
+function calcBighaSystem(value: number, unit: string): LandResult[] {
+  let sqm = 0;
+  if (unit === "bigha") sqm = value * BIGHA_TO_SQM;
+  else if (unit === "kattha") sqm = value * KATTHA_TO_SQM;
+  else if (unit === "dhur") sqm = value * DHUR_TO_SQM;
+
+  const bigha = sqm / BIGHA_TO_SQM;
+  const kattha = sqm / KATTHA_TO_SQM;
+  const dhur = sqm / DHUR_TO_SQM;
+  const sqft = sqm * 10.7639;
+  const hectare = sqm / 10000;
+
+  return [
+    { label: "Square Meters (sq.m)", value: sqm.toFixed(4) },
+    { label: "Square Feet (sq.ft)", value: sqft.toFixed(4) },
+    { label: "Hectare (ha)", value: hectare.toFixed(6) },
+    { label: "Bigha", value: bigha.toFixed(4) },
+    { label: "Kattha", value: kattha.toFixed(4) },
+    { label: "Dhur", value: dhur.toFixed(4) },
+  ];
+}
+
+const LENGTH_UNITS: { label: string; toMeter: number }[] = [
+  { label: "Meter (m)", toMeter: 1 },
+  { label: "Centimeter (cm)", toMeter: 0.01 },
+  { label: "Millimeter (mm)", toMeter: 0.001 },
+  { label: "Kilometer (km)", toMeter: 1000 },
+  { label: "Foot (ft)", toMeter: 0.3048 },
+  { label: "Inch (in)", toMeter: 0.0254 },
+  { label: "Yard (yd)", toMeter: 0.9144 },
+  { label: "Mile (mi)", toMeter: 1609.344 },
+  { label: "Haat (हात)", toMeter: 0.4572 },
+  { label: "Dhanusha (धनुषा)", toMeter: 1.8288 },
+];
+
+const AREA_UNITS: { label: string; toSqm: number }[] = [
+  { label: "Square Meter (sq.m)", toSqm: 1 },
+  { label: "Square Foot (sq.ft)", toSqm: 0.092903 },
+  { label: "Square Kilometer (sq.km)", toSqm: 1e6 },
+  { label: "Hectare (ha)", toSqm: 10000 },
+  { label: "Acre", toSqm: 4046.86 },
+  { label: "Ropani", toSqm: ROPANI_TO_SQM },
+  { label: "Aana", toSqm: AANA_TO_SQM },
+  { label: "Bigha", toSqm: BIGHA_TO_SQM },
+  { label: "Kattha", toSqm: KATTHA_TO_SQM },
+];
+
+function CalculatorTool() {
+  const [tab, setTab] = useState<"land" | "length" | "area">("land");
+  const [landSystem, setLandSystem] = useState<LandSystem>("ropani");
+  const [landInput, setLandInput] = useState("");
+  const [landUnit, setLandUnit] = useState("ropani");
+  const [landResults, setLandResults] = useState<LandResult[]>([]);
+
+  const [lengthValue, setLengthValue] = useState("");
+  const [lengthFrom, setLengthFrom] = useState(0);
+  const [lengthTo, setLengthTo] = useState(3);
+  const [lengthResult, setLengthResult] = useState("");
+
+  const [areaValue, setAreaValue] = useState("");
+  const [areaFrom, setAreaFrom] = useState(0);
+  const [areaTo, setAreaTo] = useState(4);
+  const [areaResult, setAreaResult] = useState("");
+
+  const convertLand = useCallback(() => {
+    const v = parseFloat(landInput);
+    if (isNaN(v) || v < 0) { setLandResults([]); return; }
+    setLandResults(
+      landSystem === "ropani" ? calcRopaniSystem(v, landUnit) : calcBighaSystem(v, landUnit)
+    );
+  }, [landInput, landUnit, landSystem]);
+
+  useEffect(() => { convertLand(); }, [convertLand]);
+
+  useEffect(() => {
+    const v = parseFloat(lengthValue);
+    if (isNaN(v)) { setLengthResult(""); return; }
+    const meters = v * LENGTH_UNITS[lengthFrom].toMeter;
+    const result = meters / LENGTH_UNITS[lengthTo].toMeter;
+    setLengthResult(result.toFixed(6).replace(/\.?0+$/, ""));
+  }, [lengthValue, lengthFrom, lengthTo]);
+
+  useEffect(() => {
+    const v = parseFloat(areaValue);
+    if (isNaN(v)) { setAreaResult(""); return; }
+    const sqm = v * AREA_UNITS[areaFrom].toSqm;
+    const result = sqm / AREA_UNITS[areaTo].toSqm;
+    setAreaResult(result.toFixed(8).replace(/\.?0+$/, ""));
+  }, [areaValue, areaFrom, areaTo]);
+
+  const ropaniUnits = [
+    { value: "ropani", label: "Ropani (रोपनी)" },
+    { value: "aana", label: "Aana (आना)" },
+    { value: "paisa", label: "Paisa (पैसा)" },
+    { value: "daam", label: "Daam (दाम)" },
+  ];
+  const bighaUnits = [
+    { value: "bigha", label: "Bigha (बिघा)" },
+    { value: "kattha", label: "Kattha (कट्ठा)" },
+    { value: "dhur", label: "Dhur (धुर)" },
+  ];
+
+  const inputCls = "bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-primary focus:outline-none rounded px-4 py-3 w-full text-sm";
+  const selectCls = "bg-white/5 border border-white/10 text-white focus:border-primary focus:outline-none rounded px-4 py-3 w-full text-sm appearance-none cursor-pointer";
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {[
+          { key: "land", label: "🏔 Land Units (Nepal)" },
+          { key: "length", label: "📏 Length" },
+          { key: "area", label: "⬜ Area" },
+        ].map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key as typeof tab)}
+            className={`px-5 py-2 text-sm font-semibold rounded transition-colors ${
+              tab === t.key
+                ? "bg-primary text-white"
+                : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white border border-white/10"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Land Tab */}
+      {tab === "land" && (
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <div className="flex gap-2 mb-2">
+              {(["ropani", "bigha"] as LandSystem[]).map(s => (
+                <button
+                  key={s}
+                  onClick={() => { setLandSystem(s); setLandUnit(s === "ropani" ? "ropani" : "bigha"); setLandInput(""); }}
+                  className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded transition-colors ${
+                    landSystem === s ? "bg-accent text-white" : "bg-white/5 text-white/50 hover:bg-white/10 border border-white/10"
+                  }`}
+                >
+                  {s === "ropani" ? "Hilly (Ropani)" : "Terai (Bigha)"}
+                </button>
+              ))}
+            </div>
+            <div>
+              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Enter Value</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="e.g. 2.5"
+                value={landInput}
+                onChange={e => setLandInput(e.target.value)}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Unit</label>
+              <select
+                value={landUnit}
+                onChange={e => setLandUnit(e.target.value)}
+                className={selectCls}
+              >
+                {(landSystem === "ropani" ? ropaniUnits : bighaUnits).map(u => (
+                  <option key={u.value} value={u.value} className="bg-gray-900">{u.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="p-4 bg-white/5 border border-white/10 rounded text-xs text-white/40 leading-relaxed">
+              <strong className="text-white/60 block mb-1">Reference</strong>
+              {landSystem === "ropani"
+                ? "1 Ropani = 16 Aana = 64 Paisa = 256 Daam = 508.72 sq.m = 5,476 sq.ft"
+                : "1 Bigha = 20 Kattha = 400 Dhur = 6,772.63 sq.m = 72,900 sq.ft"}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs text-white/50 uppercase tracking-wider mb-3">Conversion Results</p>
+            {landResults.length === 0 ? (
+              <div className="flex items-center justify-center h-48 border border-white/10 rounded text-white/30 text-sm">
+                Enter a value to see conversions
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {landResults.map((r, i) => (
+                  <div key={i} className={`flex justify-between items-center px-4 py-3 rounded border ${i < 3 ? "border-primary/30 bg-primary/5" : "border-white/10 bg-white/5"}`}>
+                    <span className="text-white/60 text-sm">{r.label}</span>
+                    <span className={`font-mono font-bold text-sm ${i < 3 ? "text-primary" : "text-white"}`}>{r.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Length Tab */}
+      {tab === "length" && (
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Value</label>
+              <input type="number" placeholder="Enter value" value={lengthValue} onChange={e => setLengthValue(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">From</label>
+              <select value={lengthFrom} onChange={e => setLengthFrom(Number(e.target.value))} className={selectCls}>
+                {LENGTH_UNITS.map((u, i) => <option key={i} value={i} className="bg-gray-900">{u.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">To</label>
+              <select value={lengthTo} onChange={e => setLengthTo(Number(e.target.value))} className={selectCls}>
+                {LENGTH_UNITS.map((u, i) => <option key={i} value={i} className="bg-gray-900">{u.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex flex-col justify-center">
+            <p className="text-xs text-white/50 uppercase tracking-wider mb-3">Result</p>
+            <div className="p-8 border border-white/10 rounded bg-white/5 text-center">
+              {lengthResult ? (
+                <>
+                  <p className="text-4xl font-mono font-black text-primary mb-2">{lengthResult}</p>
+                  <p className="text-white/50 text-sm">{LENGTH_UNITS[lengthTo].label}</p>
+                </>
+              ) : (
+                <p className="text-white/30 text-sm">Enter a value to convert</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Area Tab */}
+      {tab === "area" && (
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Value</label>
+              <input type="number" placeholder="Enter value" value={areaValue} onChange={e => setAreaValue(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">From</label>
+              <select value={areaFrom} onChange={e => setAreaFrom(Number(e.target.value))} className={selectCls}>
+                {AREA_UNITS.map((u, i) => <option key={i} value={i} className="bg-gray-900">{u.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">To</label>
+              <select value={areaTo} onChange={e => setAreaTo(Number(e.target.value))} className={selectCls}>
+                {AREA_UNITS.map((u, i) => <option key={i} value={i} className="bg-gray-900">{u.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex flex-col justify-center">
+            <p className="text-xs text-white/50 uppercase tracking-wider mb-3">Result</p>
+            <div className="p-8 border border-white/10 rounded bg-white/5 text-center">
+              {areaResult ? (
+                <>
+                  <p className="text-4xl font-mono font-black text-primary mb-2">{areaResult}</p>
+                  <p className="text-white/50 text-sm">{AREA_UNITS[areaTo].label}</p>
+                </>
+              ) : (
+                <p className="text-white/30 text-sm">Enter a value to convert</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -111,6 +425,7 @@ export default function Home() {
             <button onClick={() => scrollTo("services")} className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}>Expertise</button>
             <button onClick={() => scrollTo("projects")} className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}>Projects</button>
             <button onClick={() => scrollTo("process")} className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}>Process</button>
+            <button onClick={() => scrollTo("calculator")} className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}>Calculator</button>
             <Button onClick={() => scrollTo("contact")} variant="default" className="rounded-none font-bold ml-4">
               Get a Quote
             </Button>
@@ -129,6 +444,7 @@ export default function Home() {
           <button onClick={() => scrollTo("services")} className="text-xl font-bold text-left border-b pb-4">Expertise</button>
           <button onClick={() => scrollTo("projects")} className="text-xl font-bold text-left border-b pb-4">Projects</button>
           <button onClick={() => scrollTo("process")} className="text-xl font-bold text-left border-b pb-4">Process</button>
+          <button onClick={() => scrollTo("calculator")} className="text-xl font-bold text-left border-b pb-4">Calculator</button>
           <Button onClick={() => scrollTo("contact")} size="lg" className="rounded-none font-bold w-full mt-4">
             Get a Quote
           </Button>
@@ -618,6 +934,25 @@ export default function Home() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Unit Conversion Calculator Section */}
+      <section id="calculator" className="py-24 md:py-32 bg-secondary text-white">
+        <div className="container mx-auto px-6">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={STAGGER} className="text-center mb-14">
+            <motion.p variants={FADE_UP} className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-3">Free Tool</motion.p>
+            <motion.h2 variants={FADE_UP} className="text-3xl md:text-5xl font-display font-bold text-white mb-4">
+              Nepal Land & Measurement Calculator
+            </motion.h2>
+            <motion.p variants={FADE_UP} className="text-white/60 max-w-xl mx-auto text-sm">
+              Convert between traditional Nepali land units (Ropani, Aana, Paisa, Daam) and international measurements instantly.
+            </motion.p>
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={FADE_UP}>
+            <CalculatorTool />
+          </motion.div>
         </div>
       </section>
 
