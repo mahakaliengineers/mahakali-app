@@ -27,6 +27,12 @@ export interface ClientUser {
   email: string;
   /** @nullable */
   phone?: string | null;
+  /** @nullable */
+  siteLocation?: string | null;
+  /** @nullable */
+  fiscalYear?: string | null;
+  /** @nullable */
+  clientCode?: string | null;
   role: string;
   createdAt: string;
 }
@@ -36,6 +42,8 @@ export interface ClientInput {
   email: string;
   password: string;
   phone?: string;
+  siteLocation?: string;
+  fiscalYear?: string;
 }
 
 export interface Project {

@@ -11,4 +11,6 @@ export interface ClientInput {
   email: string;
   password: string;
   phone?: string;
+  siteLocation?: string;
+  fiscalYear?: string;
 }

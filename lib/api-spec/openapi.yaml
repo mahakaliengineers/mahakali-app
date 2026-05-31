@@ -539,6 +539,12 @@ components:
           type: string
         phone:
           type: ["string", "null"]
+        siteLocation:
+          type: ["string", "null"]
+        fiscalYear:
+          type: ["string", "null"]
+        clientCode:
+          type: ["string", "null"]
         role:
           type: string
         createdAt:
@@ -555,6 +561,10 @@ components:
         password:
           type: string
         phone:
+          type: string
+        siteLocation:
+          type: string
+        fiscalYear:
           type: string
 
     Project:

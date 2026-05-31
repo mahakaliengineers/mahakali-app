@@ -12,6 +12,12 @@ export interface ClientUser {
   email: string;
   /** @nullable */
   phone?: string | null;
+  /** @nullable */
+  siteLocation?: string | null;
+  /** @nullable */
+  fiscalYear?: string | null;
+  /** @nullable */
+  clientCode?: string | null;
   role: string;
   createdAt: string;
 }

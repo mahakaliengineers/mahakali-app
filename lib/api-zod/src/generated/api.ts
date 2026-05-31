@@ -86,6 +86,9 @@ export const GetProjectResponse = zod.object({
   "name": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullish(),
+  "siteLocation": zod.string().nullish(),
+  "fiscalYear": zod.string().nullish(),
+  "clientCode": zod.string().nullish(),
   "role": zod.string(),
   "createdAt": zod.string()
 })
@@ -190,6 +193,9 @@ export const ListClientsResponseItem = zod.object({
   "name": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullish(),
+  "siteLocation": zod.string().nullish(),
+  "fiscalYear": zod.string().nullish(),
+  "clientCode": zod.string().nullish(),
   "role": zod.string(),
   "createdAt": zod.string()
 })
@@ -203,7 +209,9 @@ export const CreateClientBody = zod.object({
   "name": zod.string(),
   "email": zod.string(),
   "password": zod.string(),
-  "phone": zod.string().optional()
+  "phone": zod.string().optional(),
+  "siteLocation": zod.string().optional(),
+  "fiscalYear": zod.string().optional()
 })
 
 

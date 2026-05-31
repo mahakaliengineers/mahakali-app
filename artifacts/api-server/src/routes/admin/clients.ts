@@ -16,12 +16,21 @@ function requireAdmin(req: any, res: any, next: any) {
   }).catch(next);
 }
 
+function formatClientCode(id: number, fiscalYear: string | null | undefined): string {
+  const paddedId = String(id).padStart(5, "0");
+  const fy = (fiscalYear ?? "").replace("/", "");
+  return fy ? `${paddedId}-${fy}` : paddedId;
+}
+
 router.get("/admin/clients", requireAdmin, async (req, res) => {
   const clients = await db.select({
     id: usersTable.id,
     name: usersTable.name,
     email: usersTable.email,
     phone: usersTable.phone,
+    siteLocation: usersTable.siteLocation,
+    fiscalYear: usersTable.fiscalYear,
+    clientCode: usersTable.clientCode,
     role: usersTable.role,
     createdAt: usersTable.createdAt,
   }).from(usersTable).where(eq(usersTable.role, "client")).orderBy(usersTable.createdAt);
@@ -31,12 +40,22 @@ router.get("/admin/clients", requireAdmin, async (req, res) => {
 router.post("/admin/clients", requireAdmin, async (req, res) => {
   const parsed = CreateClientBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid request body" }); return; }
-  const { name, email, password, phone } = parsed.data;
+  const { name, email, password, phone, siteLocation, fiscalYear } = parsed.data as any;
   const passwordHash = await bcrypt.hash(password, 10);
   const [user] = await db.insert(usersTable).values({
-    name, email, passwordHash, role: "client", phone: phone ?? null,
+    name, email, passwordHash, role: "client",
+    phone: phone ?? null,
+    siteLocation: siteLocation ?? null,
+    fiscalYear: fiscalYear ?? null,
   }).returning();
-  res.status(201).json({ id: user!.id, name: user!.name, email: user!.email, phone: user!.phone, role: user!.role, createdAt: user!.createdAt });
+  const clientCode = formatClientCode(user!.id, fiscalYear);
+  const [updated] = await db.update(usersTable).set({ clientCode }).where(eq(usersTable.id, user!.id)).returning();
+  res.status(201).json({
+    id: updated!.id, name: updated!.name, email: updated!.email,
+    phone: updated!.phone, siteLocation: updated!.siteLocation,
+    fiscalYear: updated!.fiscalYear, clientCode: updated!.clientCode,
+    role: updated!.role, createdAt: updated!.createdAt,
+  });
 });
 
 export default router;

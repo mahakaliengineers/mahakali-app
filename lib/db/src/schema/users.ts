@@ -11,6 +11,9 @@ export const usersTable = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("client"),
   phone: text("phone"),
+  siteLocation: text("site_location"),
+  fiscalYear: text("fiscal_year"),
+  clientCode: text("client_code"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
