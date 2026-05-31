@@ -222,9 +222,8 @@ function CalculatorTool() {
   const [lengthResult, setLengthResult] = useState("");
 
   const [areaValue, setAreaValue] = useState("");
-  const [areaFrom, setAreaFrom] = useState(0);
-  const [areaTo, setAreaTo] = useState(4);
-  const [areaResult, setAreaResult] = useState("");
+  const [areaUnit, setAreaUnit] = useState(0);
+  const [areaResults, setAreaResults] = useState<LandResult[]>([]);
 
   // Cost estimator state
   const [costArea, setCostArea] = useState("");
@@ -288,11 +287,15 @@ function CalculatorTool() {
 
   useEffect(() => {
     const v = parseFloat(areaValue);
-    if (isNaN(v)) { setAreaResult(""); return; }
-    const sqm = v * AREA_UNITS[areaFrom].toSqm;
-    const result = sqm / AREA_UNITS[areaTo].toSqm;
-    setAreaResult(result.toFixed(8).replace(/\.?0+$/, ""));
-  }, [areaValue, areaFrom, areaTo]);
+    if (isNaN(v) || v < 0) { setAreaResults([]); return; }
+    const sqm = v * AREA_UNITS[areaUnit].toSqm;
+    setAreaResults(
+      AREA_UNITS.map(u => ({
+        label: u.label,
+        value: (sqm / u.toSqm).toFixed(6).replace(/\.?0+$/, ""),
+      }))
+    );
+  }, [areaValue, areaUnit]);
 
   const ropaniUnits = [
     { value: "ropani", label: "Ropani (रोपनी)" },
@@ -406,34 +409,32 @@ function CalculatorTool() {
           <div className="grid md:grid-cols-2 gap-8">
             <div className="space-y-4">
               <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Value</label>
-                <input type="number" placeholder="Enter value" value={areaValue} onChange={e => setAreaValue(e.target.value)} className={inputCls} />
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Enter Value</label>
+                <input type="number" min="0" placeholder="e.g. 2.5" value={areaValue} onChange={e => setAreaValue(e.target.value)} className={inputCls} />
               </div>
               <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">From</label>
-                <select value={areaFrom} onChange={e => setAreaFrom(Number(e.target.value))} className={selectCls}>
-                  {AREA_UNITS.map((u, i) => <option key={i} value={i} className="bg-gray-900">{u.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">To</label>
-                <select value={areaTo} onChange={e => setAreaTo(Number(e.target.value))} className={selectCls}>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Unit</label>
+                <select value={areaUnit} onChange={e => setAreaUnit(Number(e.target.value))} className={selectCls}>
                   {AREA_UNITS.map((u, i) => <option key={i} value={i} className="bg-gray-900">{u.label}</option>)}
                 </select>
               </div>
             </div>
-            <div className="flex flex-col justify-center">
-              <p className="text-xs text-white/50 uppercase tracking-wider mb-3">Result</p>
-              <div className="p-8 border border-white/10 rounded bg-white/5 text-center">
-                {areaResult ? (
-                  <>
-                    <p className="text-4xl font-mono font-black text-primary mb-2">{areaResult}</p>
-                    <p className="text-white/50 text-sm">{AREA_UNITS[areaTo].label}</p>
-                  </>
-                ) : (
-                  <p className="text-white/30 text-sm">Enter a value to convert</p>
-                )}
-              </div>
+            <div>
+              <p className="text-xs text-white/50 uppercase tracking-wider mb-3">All Conversions</p>
+              {areaResults.length === 0 ? (
+                <div className="flex items-center justify-center h-48 border border-white/10 rounded text-white/30 text-sm">
+                  Enter a value to see all conversions
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {areaResults.map((r, i) => (
+                    <div key={i} className={`flex justify-between items-center px-4 py-3 rounded border ${i === areaUnit ? "border-primary/30 bg-primary/5" : "border-white/10 bg-white/5"}`}>
+                      <span className="text-white/60 text-sm">{r.label}</span>
+                      <span className={`font-mono font-bold text-sm ${i === areaUnit ? "text-primary" : "text-white"}`}>{r.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
