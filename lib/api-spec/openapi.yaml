@@ -211,6 +211,50 @@ paths:
                 items:
                   $ref: "#/components/schemas/Milestone"
 
+  /portal/projects/{id}/comments:
+    get:
+      operationId: listComments
+      tags: [portal]
+      summary: List project comments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+    post:
+      operationId: addComment
+      tags: [portal]
+      summary: Add a comment to a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+
   /admin/clients:
     get:
       operationId: listClients
@@ -316,7 +360,7 @@ paths:
     delete:
       operationId: deletePhoto
       tags: [admin]
-      summary: Delete a photo
+      summary: Delete a photo (super admin only)
       parameters:
         - name: id
           in: path
@@ -326,6 +370,25 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  /admin/photos/{id}/approve:
+    patch:
+      operationId: approvePhoto
+      tags: [admin]
+      summary: Approve a photo (super admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Photo"
 
   /admin/projects/{id}/documents:
     post:
@@ -347,6 +410,40 @@ paths:
       responses:
         "201":
           description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+
+  /admin/documents/{id}:
+    delete:
+      operationId: deleteDocument
+      tags: [admin]
+      summary: Delete a document (super admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /admin/documents/{id}/approve:
+    patch:
+      operationId: approveDocument
+      tags: [admin]
+      summary: Approve a document (super admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
           content:
             application/json:
               schema:
@@ -477,6 +574,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/Payment"
 
+  /admin/users/{id}/role:
+    patch:
+      operationId: updateUserRole
+      tags: [admin]
+      summary: Update a user role (super admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientUser"
+
   /admin/storage/upload-url:
     post:
       operationId: requestUploadUrl
@@ -570,6 +692,14 @@ components:
           type: string
         clientNumber:
           type: string
+
+    UserRoleUpdate:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [client, admin, super_admin]
 
     Project:
       type: object
@@ -672,16 +802,20 @@ components:
 
     Photo:
       type: object
-      required: [id, projectId, url, uploadedAt]
+      required: [id, projectId, url, status, uploadedAt]
       properties:
         id:
           type: integer
         projectId:
           type: integer
+        uploadedById:
+          type: ["integer", "null"]
         url:
           type: string
         caption:
           type: ["string", "null"]
+        status:
+          type: string
         uploadedAt:
           type: string
 
@@ -696,17 +830,21 @@ components:
 
     Document:
       type: object
-      required: [id, projectId, name, url, type, uploadedAt]
+      required: [id, projectId, name, url, type, status, uploadedAt]
       properties:
         id:
           type: integer
         projectId:
           type: integer
+        uploadedById:
+          type: ["integer", "null"]
         name:
           type: string
         url:
           type: string
         type:
+          type: string
+        status:
           type: string
         uploadedAt:
           type: string
@@ -720,6 +858,30 @@ components:
         url:
           type: string
         type:
+          type: string
+
+    Comment:
+      type: object
+      required: [id, projectId, userId, message, authorName, createdAt]
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        userId:
+          type: integer
+        authorName:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+
+    CommentInput:
+      type: object
+      required: [message]
+      properties:
+        message:
           type: string
 
     Update:

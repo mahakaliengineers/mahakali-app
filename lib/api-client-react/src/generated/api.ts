@@ -23,6 +23,8 @@ import type {
   AuthUser,
   ClientInput,
   ClientUser,
+  Comment,
+  CommentInput,
   Document,
   DocumentInput,
   HealthStatus,
@@ -42,7 +44,8 @@ import type {
   Update,
   UpdateInput,
   UploadUrlInput,
-  UploadUrlResponse
+  UploadUrlResponse,
+  UserRoleUpdate
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -891,6 +894,155 @@ export function useListMilestones<TData = Awaited<ReturnType<typeof listMileston
 
 
 
+export const getListCommentsUrl = (id: number,) => {
+
+
+
+
+  return `/api/portal/projects/${id}/comments`
+}
+
+/**
+ * @summary List project comments
+ */
+export const listComments = async (id: number, options?: RequestInit): Promise<Comment[]> => {
+
+  return customFetch<Comment[]>(getListCommentsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCommentsQueryKey = (id: number,) => {
+    return [
+    `/api/portal/projects/${id}/comments`
+    ] as const;
+    }
+
+
+export const getListCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listComments>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCommentsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listComments>>> = ({ signal }) => listComments(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listComments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCommentsQueryResult = NonNullable<Awaited<ReturnType<typeof listComments>>>
+export type ListCommentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List project comments
+ */
+
+export function useListComments<TData = Awaited<ReturnType<typeof listComments>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCommentsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAddCommentUrl = (id: number,) => {
+
+
+
+
+  return `/api/portal/projects/${id}/comments`
+}
+
+/**
+ * @summary Add a comment to a project
+ */
+export const addComment = async (id: number,
+    commentInput: CommentInput, options?: RequestInit): Promise<Comment> => {
+
+  return customFetch<Comment>(getAddCommentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      commentInput,)
+  }
+);}
+
+
+
+
+export const getAddCommentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addComment>>, TError,{id: number;data: BodyType<CommentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addComment>>, TError,{id: number;data: BodyType<CommentInput>}, TContext> => {
+
+const mutationKey = ['addComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addComment>>, {id: number;data: BodyType<CommentInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addComment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddCommentMutationResult = NonNullable<Awaited<ReturnType<typeof addComment>>>
+    export type AddCommentMutationBody = BodyType<CommentInput>
+    export type AddCommentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add a comment to a project
+ */
+export const useAddComment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addComment>>, TError,{id: number;data: BodyType<CommentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addComment>>,
+        TError,
+        {id: number;data: BodyType<CommentInput>},
+        TContext
+      > => {
+      return useMutation(getAddCommentMutationOptions(options));
+    }
+
 export const getListClientsUrl = () => {
 
 
@@ -1263,7 +1415,7 @@ export const getDeletePhotoUrl = (id: number,) => {
 }
 
 /**
- * @summary Delete a photo
+ * @summary Delete a photo (super admin only)
  */
 export const deletePhoto = async (id: number, options?: RequestInit): Promise<void> => {
 
@@ -1311,7 +1463,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeletePhotoMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete a photo
+ * @summary Delete a photo (super admin only)
  */
 export const useDeletePhoto = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePhoto>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -1322,6 +1474,76 @@ export const useDeletePhoto = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeletePhotoMutationOptions(options));
+    }
+
+export const getApprovePhotoUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/photos/${id}/approve`
+}
+
+/**
+ * @summary Approve a photo (super admin only)
+ */
+export const approvePhoto = async (id: number, options?: RequestInit): Promise<Photo> => {
+
+  return customFetch<Photo>(getApprovePhotoUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getApprovePhotoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approvePhoto>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approvePhoto>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['approvePhoto'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approvePhoto>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  approvePhoto(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApprovePhotoMutationResult = NonNullable<Awaited<ReturnType<typeof approvePhoto>>>
+
+    export type ApprovePhotoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Approve a photo (super admin only)
+ */
+export const useApprovePhoto = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approvePhoto>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approvePhoto>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getApprovePhotoMutationOptions(options));
     }
 
 export const getAddDocumentUrl = (id: number,) => {
@@ -1394,6 +1616,146 @@ export const useAddDocument = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getAddDocumentMutationOptions(options));
+    }
+
+export const getDeleteDocumentUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/documents/${id}`
+}
+
+/**
+ * @summary Delete a document (super admin only)
+ */
+export const deleteDocument = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteDocumentUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDocument>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteDocument>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteDocument>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteDocument(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDocument>>>
+
+    export type DeleteDocumentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a document (super admin only)
+ */
+export const useDeleteDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDocument>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteDocument>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteDocumentMutationOptions(options));
+    }
+
+export const getApproveDocumentUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/documents/${id}/approve`
+}
+
+/**
+ * @summary Approve a document (super admin only)
+ */
+export const approveDocument = async (id: number, options?: RequestInit): Promise<Document> => {
+
+  return customFetch<Document>(getApproveDocumentUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getApproveDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveDocument>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveDocument>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['approveDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveDocument>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  approveDocument(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof approveDocument>>>
+
+    export type ApproveDocumentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Approve a document (super admin only)
+ */
+export const useApproveDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveDocument>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveDocument>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getApproveDocumentMutationOptions(options));
     }
 
 export const getAddUpdateUrl = (id: number,) => {
@@ -1754,6 +2116,78 @@ export const useUpdatePayment = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdatePaymentMutationOptions(options));
+    }
+
+export const getUpdateUserRoleUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/users/${id}/role`
+}
+
+/**
+ * @summary Update a user role (super admin only)
+ */
+export const updateUserRole = async (id: number,
+    userRoleUpdate: UserRoleUpdate, options?: RequestInit): Promise<ClientUser> => {
+
+  return customFetch<ClientUser>(getUpdateUserRoleUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      userRoleUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateUserRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUserRole>>, TError,{id: number;data: BodyType<UserRoleUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateUserRole>>, TError,{id: number;data: BodyType<UserRoleUpdate>}, TContext> => {
+
+const mutationKey = ['updateUserRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateUserRole>>, {id: number;data: BodyType<UserRoleUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateUserRole(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateUserRoleMutationResult = NonNullable<Awaited<ReturnType<typeof updateUserRole>>>
+    export type UpdateUserRoleMutationBody = BodyType<UserRoleUpdate>
+    export type UpdateUserRoleMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a user role (super admin only)
+ */
+export const useUpdateUserRole = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUserRole>>, TError,{id: number;data: BodyType<UserRoleUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateUserRole>>,
+        TError,
+        {id: number;data: BodyType<UserRoleUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateUserRoleMutationOptions(options));
     }
 
 export const getRequestUploadUrlUrl = () => {

@@ -2,34 +2,23 @@ import { useState } from "react";
 import { useRoute } from "wouter";
 import { Layout } from "@/components/layout";
 import { 
-  useGetProject, 
-  getGetProjectQueryKey,
+  useGetProject, getGetProjectQueryKey,
   useUpdateProject,
-  useListMilestones, 
-  getListMilestonesQueryKey,
-  useAddMilestone,
-  useUpdateMilestone,
-  useListPhotos, 
-  getListPhotosQueryKey,
-  useAddPhoto,
-  useListDocuments, 
-  getListDocumentsQueryKey,
-  useAddDocument,
-  useListUpdates, 
-  getListUpdatesQueryKey,
-  useAddUpdate,
-  useListPayments,
-  getListPaymentsQueryKey,
-  useAddPayment,
-  useUpdatePayment
+  useListMilestones, getListMilestonesQueryKey, useAddMilestone, useUpdateMilestone,
+  useListPhotos, getListPhotosQueryKey, useAddPhoto, useDeletePhoto, useApprovePhoto,
+  useListDocuments, getListDocumentsQueryKey, useAddDocument, useDeleteDocument, useApproveDocument,
+  useListUpdates, getListUpdatesQueryKey, useAddUpdate,
+  useListPayments, getListPaymentsQueryKey, useAddPayment, useUpdatePayment,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Plus, ArrowLeft, Image as ImageIcon, Save, CheckCircle2, FileText, CreditCard } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Plus, ArrowLeft, Image as ImageIcon, Save, CheckCircle2, FileText, CreditCard, Trash2, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,87 +29,56 @@ export default function AdminManageProject() {
   const projectId = match && params?.id ? parseInt(params.id, 10) : 0;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "super_admin";
 
-  // Queries
-  const { data: project, isLoading: isProjectLoading } = useGetProject(projectId, { 
-    query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) } 
+  const { data: project, isLoading: isProjectLoading } = useGetProject(projectId, {
+    query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) }
   });
-  
-  const { data: milestones } = useListMilestones(projectId, {
-    query: { enabled: !!projectId, queryKey: getListMilestonesQueryKey(projectId) }
-  });
-  const { data: photos } = useListPhotos(projectId, {
-    query: { enabled: !!projectId, queryKey: getListPhotosQueryKey(projectId) }
-  });
-  const { data: documents } = useListDocuments(projectId, {
-    query: { enabled: !!projectId, queryKey: getListDocumentsQueryKey(projectId) }
-  });
-  const { data: updates } = useListUpdates(projectId, {
-    query: { enabled: !!projectId, queryKey: getListUpdatesQueryKey(projectId) }
-  });
-  const { data: payments } = useListPayments(projectId, {
-    query: { enabled: !!projectId, queryKey: getListPaymentsQueryKey(projectId) }
-  });
+  const { data: milestones } = useListMilestones(projectId, { query: { enabled: !!projectId, queryKey: getListMilestonesQueryKey(projectId) } });
+  const { data: photos } = useListPhotos(projectId, { query: { enabled: !!projectId, queryKey: getListPhotosQueryKey(projectId) } });
+  const { data: documents } = useListDocuments(projectId, { query: { enabled: !!projectId, queryKey: getListDocumentsQueryKey(projectId) } });
+  const { data: updates } = useListUpdates(projectId, { query: { enabled: !!projectId, queryKey: getListUpdatesQueryKey(projectId) } });
+  const { data: payments } = useListPayments(projectId, { query: { enabled: !!projectId, queryKey: getListPaymentsQueryKey(projectId) } });
 
-  // Mutations
   const updateProject = useUpdateProject();
   const addMilestone = useAddMilestone();
   const updateMilestone = useUpdateMilestone();
   const addPhoto = useAddPhoto();
+  const deletePhoto = useDeletePhoto();
+  const approvePhoto = useApprovePhoto();
   const addDocument = useAddDocument();
+  const deleteDocument = useDeleteDocument();
+  const approveDocument = useApproveDocument();
   const addUpdate = useAddUpdate();
   const addPayment = useAddPayment();
   const updatePayment = useUpdatePayment();
 
-  // Local states for quick forms
   const [projectProgress, setProjectProgress] = useState<number>(0);
   const [projectStatus, setProjectStatus] = useState<string>("");
-  
-  // Set initial state when project loads
   if (project && projectProgress === 0 && !updateProject.isPending && project.progress !== projectProgress && projectStatus === "") {
     setProjectProgress(project.progress);
     setProjectStatus(project.status);
   }
 
   const handleUpdateProject = () => {
-    updateProject.mutate({
-      id: projectId,
-      data: { progress: projectProgress, status: projectStatus }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
-        toast({ title: "Project updated" });
-      }
+    updateProject.mutate({ id: projectId, data: { progress: projectProgress, status: projectStatus } }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) }); toast({ title: "Project updated" }); }
     });
   };
 
-  // Forms states
   const [newMilestoneTitle, setNewMilestoneTitle] = useState("");
   const [newMilestoneDesc, setNewMilestoneDesc] = useState("");
-  
   const handleAddMilestone = (e: React.FormEvent) => {
     e.preventDefault();
-    addMilestone.mutate({
-      id: projectId,
-      data: { title: newMilestoneTitle, description: newMilestoneDesc, order: (milestones?.length || 0) + 1 }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListMilestonesQueryKey(projectId) });
-        setNewMilestoneTitle("");
-        setNewMilestoneDesc("");
-        toast({ title: "Milestone added" });
-      }
+    addMilestone.mutate({ id: projectId, data: { title: newMilestoneTitle, description: newMilestoneDesc, order: (milestones?.length || 0) + 1 } }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListMilestonesQueryKey(projectId) }); setNewMilestoneTitle(""); setNewMilestoneDesc(""); toast({ title: "Milestone added" }); }
     });
   };
 
   const handleMarkMilestone = (milestoneId: number, isComplete: boolean) => {
-    updateMilestone.mutate({
-      id: milestoneId,
-      data: { completedAt: isComplete ? new Date().toISOString() : null }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListMilestonesQueryKey(projectId) });
-      }
+    updateMilestone.mutate({ id: milestoneId, data: { completedAt: isComplete ? new Date().toISOString() : null } }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListMilestonesQueryKey(projectId) }); }
     });
   };
 
@@ -128,16 +86,18 @@ export default function AdminManageProject() {
   const [newPhotoCaption, setNewPhotoCaption] = useState("");
   const handleAddPhoto = (e: React.FormEvent) => {
     e.preventDefault();
-    addPhoto.mutate({
-      id: projectId,
-      data: { url: newPhotoUrl, caption: newPhotoCaption }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListPhotosQueryKey(projectId) });
-        setNewPhotoUrl("");
-        setNewPhotoCaption("");
-        toast({ title: "Photo added" });
-      }
+    addPhoto.mutate({ id: projectId, data: { url: newPhotoUrl, caption: newPhotoCaption } }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListPhotosQueryKey(projectId) }); setNewPhotoUrl(""); setNewPhotoCaption(""); toast({ title: "Photo added — awaiting Super Admin approval" }); }
+    });
+  };
+  const handleApprovePhoto = (photoId: number) => {
+    approvePhoto.mutate({ id: photoId }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListPhotosQueryKey(projectId) }); toast({ title: "Photo approved — now visible to client" }); }
+    });
+  };
+  const handleDeletePhoto = (photoId: number) => {
+    deletePhoto.mutate({ id: photoId }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListPhotosQueryKey(projectId) }); toast({ title: "Photo deleted" }); }
     });
   };
 
@@ -145,31 +105,26 @@ export default function AdminManageProject() {
   const [newDocUrl, setNewDocUrl] = useState("");
   const handleAddDoc = (e: React.FormEvent) => {
     e.preventDefault();
-    addDocument.mutate({
-      id: projectId,
-      data: { name: newDocName, url: newDocUrl, type: "PDF" }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListDocumentsQueryKey(projectId) });
-        setNewDocName("");
-        setNewDocUrl("");
-        toast({ title: "Document added" });
-      }
+    addDocument.mutate({ id: projectId, data: { name: newDocName, url: newDocUrl, type: "PDF" } }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListDocumentsQueryKey(projectId) }); setNewDocName(""); setNewDocUrl(""); toast({ title: "Document added — awaiting Super Admin approval" }); }
+    });
+  };
+  const handleApproveDocument = (docId: number) => {
+    approveDocument.mutate({ id: docId }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListDocumentsQueryKey(projectId) }); toast({ title: "Document approved — now visible to client" }); }
+    });
+  };
+  const handleDeleteDocument = (docId: number) => {
+    deleteDocument.mutate({ id: docId }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListDocumentsQueryKey(projectId) }); toast({ title: "Document deleted" }); }
     });
   };
 
   const [newUpdateMsg, setNewUpdateMsg] = useState("");
   const handleAddUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    addUpdate.mutate({
-      id: projectId,
-      data: { message: newUpdateMsg }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListUpdatesQueryKey(projectId) });
-        setNewUpdateMsg("");
-        toast({ title: "Update posted" });
-      }
+    addUpdate.mutate({ id: projectId, data: { message: newUpdateMsg } }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListUpdatesQueryKey(projectId) }); setNewUpdateMsg(""); toast({ title: "Update posted" }); }
     });
   };
 
@@ -177,30 +132,14 @@ export default function AdminManageProject() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const handleAddPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    addPayment.mutate({
-      id: projectId,
-      data: { label: paymentLabel, amount: paymentAmount, status: "pending" }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListPaymentsQueryKey(projectId) });
-        setPaymentLabel("");
-        setPaymentAmount("");
-        toast({ title: "Payment record added" });
-      }
+    addPayment.mutate({ id: projectId, data: { label: paymentLabel, amount: paymentAmount, status: "pending" } }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListPaymentsQueryKey(projectId) }); setPaymentLabel(""); setPaymentAmount(""); toast({ title: "Payment record added" }); }
     });
   };
 
   const handleUpdatePaymentStatus = (paymentId: number, status: string) => {
-    updatePayment.mutate({
-      id: paymentId,
-      data: { 
-        status, 
-        paidAt: status === 'paid' ? new Date().toISOString() : undefined 
-      }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListPaymentsQueryKey(projectId) });
-      }
+    updatePayment.mutate({ id: paymentId, data: { status, paidAt: status === 'paid' ? new Date().toISOString() : undefined } }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListPaymentsQueryKey(projectId) }); }
     });
   };
 
@@ -214,6 +153,10 @@ export default function AdminManageProject() {
     );
   }
 
+  const pendingPhotos = photos?.filter(p => p.status === "pending") ?? [];
+  const pendingDocs = documents?.filter(d => d.status === "pending") ?? [];
+  const totalPending = pendingPhotos.length + pendingDocs.length;
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -223,35 +166,42 @@ export default function AdminManageProject() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Manage: {project.title}</h1>
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold tracking-tight">Manage: {project.title}</h1>
+              {totalPending > 0 && (
+                <Badge variant="destructive" className="text-xs">
+                  {totalPending} pending approval
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground mt-1">Client: {project.client.name}</p>
           </div>
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-6 h-auto p-1 mb-6">
+          <TabsList className="grid grid-cols-3 md:grid-cols-6 h-auto p-1 mb-6">
             <TabsTrigger value="overview" className="py-2.5">Settings</TabsTrigger>
             <TabsTrigger value="milestones" className="py-2.5">Milestones</TabsTrigger>
-            <TabsTrigger value="photos" className="py-2.5">Photos</TabsTrigger>
-            <TabsTrigger value="documents" className="py-2.5">Documents</TabsTrigger>
+            <TabsTrigger value="photos" className="py-2.5">
+              Photos {pendingPhotos.length > 0 && <span className="ml-1 text-destructive font-bold">({pendingPhotos.length})</span>}
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="py-2.5">
+              Docs {pendingDocs.length > 0 && <span className="ml-1 text-destructive font-bold">({pendingDocs.length})</span>}
+            </TabsTrigger>
             <TabsTrigger value="updates" className="py-2.5">Updates</TabsTrigger>
             <TabsTrigger value="payments" className="py-2.5">Payments</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
             <Card>
-              <CardHeader>
-                <CardTitle>Project Status & Progress</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Project Status & Progress</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex flex-col md:flex-row gap-6 items-end">
                   <div className="space-y-2 flex-1">
                     <label className="text-sm font-medium">Status</label>
                     <Select value={projectStatus} onValueChange={setProjectStatus}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="planning">Planning</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
@@ -262,12 +212,7 @@ export default function AdminManageProject() {
                   </div>
                   <div className="space-y-2 flex-1">
                     <label className="text-sm font-medium">Progress (%)</label>
-                    <Input 
-                      type="number" 
-                      min="0" max="100" 
-                      value={projectProgress} 
-                      onChange={(e) => setProjectProgress(Number(e.target.value))} 
-                    />
+                    <Input type="number" min="0" max="100" value={projectProgress} onChange={(e) => setProjectProgress(Number(e.target.value))} />
                   </div>
                   <Button onClick={handleUpdateProject} disabled={updateProject.isPending}>
                     {updateProject.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
@@ -280,31 +225,17 @@ export default function AdminManageProject() {
 
           <TabsContent value="milestones" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Add Milestone</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Add Milestone</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={handleAddMilestone} className="flex gap-4 items-start">
                   <div className="flex-1 space-y-4">
-                    <Input 
-                      placeholder="Milestone Title" 
-                      value={newMilestoneTitle}
-                      onChange={(e) => setNewMilestoneTitle(e.target.value)}
-                      required
-                    />
-                    <Input 
-                      placeholder="Description (Optional)" 
-                      value={newMilestoneDesc}
-                      onChange={(e) => setNewMilestoneDesc(e.target.value)}
-                    />
+                    <Input placeholder="Milestone Title" value={newMilestoneTitle} onChange={(e) => setNewMilestoneTitle(e.target.value)} required />
+                    <Input placeholder="Description (Optional)" value={newMilestoneDesc} onChange={(e) => setNewMilestoneDesc(e.target.value)} />
                   </div>
-                  <Button type="submit" disabled={addMilestone.isPending}>
-                    <Plus className="h-4 w-4 mr-2" /> Add
-                  </Button>
+                  <Button type="submit" disabled={addMilestone.isPending}><Plus className="h-4 w-4 mr-2" /> Add</Button>
                 </form>
               </CardContent>
             </Card>
-
             <Card>
               <CardContent className="p-0">
                 <div className="divide-y">
@@ -314,133 +245,156 @@ export default function AdminManageProject() {
                         <h4 className="font-semibold">{milestone.title}</h4>
                         {milestone.description && <p className="text-sm text-muted-foreground">{milestone.description}</p>}
                       </div>
-                      <Button 
-                        variant={milestone.completedAt ? "default" : "outline"} 
+                      <Button
+                        variant={milestone.completedAt ? "default" : "outline"}
                         size="sm"
                         onClick={() => handleMarkMilestone(milestone.id, !milestone.completedAt)}
                         disabled={updateMilestone.isPending}
                       >
-                        <CheckCircle2 className="h-4 w-4 mr-2" /> 
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
                         {milestone.completedAt ? 'Completed' : 'Mark Complete'}
                       </Button>
                     </div>
                   ))}
-                  {milestones?.length === 0 && (
-                    <div className="p-8 text-center text-muted-foreground">No milestones added yet.</div>
-                  )}
+                  {milestones?.length === 0 && <div className="p-8 text-center text-muted-foreground">No milestones added yet.</div>}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Similar forms for Photos, Documents, Updates, Payments ... */}
           <TabsContent value="photos" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Add Photo</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Add Photo</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={handleAddPhoto} className="flex gap-4 items-start">
                   <div className="flex-1 space-y-4">
-                    <Input 
-                      placeholder="Image URL" 
-                      value={newPhotoUrl}
-                      onChange={(e) => setNewPhotoUrl(e.target.value)}
-                      required
-                    />
-                    <Input 
-                      placeholder="Caption (Optional)" 
-                      value={newPhotoCaption}
-                      onChange={(e) => setNewPhotoCaption(e.target.value)}
-                    />
+                    <Input placeholder="Image URL" value={newPhotoUrl} onChange={(e) => setNewPhotoUrl(e.target.value)} required />
+                    <Input placeholder="Caption (Optional)" value={newPhotoCaption} onChange={(e) => setNewPhotoCaption(e.target.value)} />
                   </div>
-                  <Button type="submit" disabled={addPhoto.isPending}>
-                    <Plus className="h-4 w-4 mr-2" /> Add
-                  </Button>
+                  <Button type="submit" disabled={addPhoto.isPending}><Plus className="h-4 w-4 mr-2" /> Add</Button>
                 </form>
+                {!isSuperAdmin && (
+                  <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Photos require Super Admin approval before clients can see them.
+                  </p>
+                )}
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {photos?.map((photo) => (
-                <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden border">
-                  <img src={photo.url} alt={photo.caption || ''} className="object-cover w-full h-full" />
-                </div>
+                <Card key={photo.id} className="overflow-hidden">
+                  <div className="aspect-[4/3] relative">
+                    <img src={photo.url} alt={photo.caption || ''} className="object-cover w-full h-full" />
+                    <div className="absolute top-2 left-2">
+                      <Badge variant={photo.status === "approved" ? "default" : "secondary"} className={photo.status === "approved" ? "bg-green-600 text-white" : "bg-amber-500 text-white"}>
+                        {photo.status === "approved" ? "✓ Approved" : "⏳ Pending"}
+                      </Badge>
+                    </div>
+                  </div>
+                  {photo.caption && <CardContent className="p-2 text-xs text-muted-foreground">{photo.caption}</CardContent>}
+                  {isSuperAdmin && (
+                    <CardContent className="p-2 pt-0 flex gap-2">
+                      {photo.status === "pending" && (
+                        <Button size="sm" variant="default" className="flex-1 h-7 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleApprovePhoto(photo.id)} disabled={approvePhoto.isPending}>
+                          <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Approve
+                        </Button>
+                      )}
+                      <Button size="sm" variant="destructive" className="flex-1 h-7 text-xs" onClick={() => handleDeletePhoto(photo.id)} disabled={deletePhoto.isPending}>
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                      </Button>
+                    </CardContent>
+                  )}
+                </Card>
               ))}
+              {photos?.length === 0 && (
+                <div className="col-span-full py-10 text-center border-2 border-dashed rounded-xl text-muted-foreground">
+                  <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                  No photos added yet.
+                </div>
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="documents" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Add Document Link</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Add Document Link</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={handleAddDoc} className="flex flex-col md:flex-row gap-4 items-end">
                   <div className="flex-1 space-y-2 w-full">
                     <label className="text-sm font-medium">Document Name</label>
-                    <Input 
-                      required
-                      value={newDocName}
-                      onChange={(e) => setNewDocName(e.target.value)}
-                    />
+                    <Input required value={newDocName} onChange={(e) => setNewDocName(e.target.value)} />
                   </div>
                   <div className="flex-1 space-y-2 w-full">
                     <label className="text-sm font-medium">URL</label>
-                    <Input 
-                      required type="url"
-                      value={newDocUrl}
-                      onChange={(e) => setNewDocUrl(e.target.value)}
-                    />
+                    <Input required type="url" value={newDocUrl} onChange={(e) => setNewDocUrl(e.target.value)} />
                   </div>
-                  <Button type="submit" disabled={addDocument.isPending}>
-                    <Plus className="h-4 w-4 mr-2" /> Add
-                  </Button>
+                  <Button type="submit" disabled={addDocument.isPending}><Plus className="h-4 w-4 mr-2" /> Add</Button>
                 </form>
+                {!isSuperAdmin && (
+                  <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Documents require Super Admin approval before clients can see them.
+                  </p>
+                )}
               </CardContent>
             </Card>
-            
+
             <div className="grid gap-2">
               {documents?.map((doc) => (
                 <div key={doc.id} className="flex items-center justify-between p-4 bg-card border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <span className="font-medium">{doc.name}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileText className="h-5 w-5 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{doc.name}</p>
+                      <p className="text-xs text-muted-foreground">{doc.type} &bull; {format(new Date(doc.uploadedAt), 'MMM d, yyyy')}</p>
+                    </div>
                   </div>
-                  <a href={doc.url} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">View</a>
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    <Badge variant={doc.status === "approved" ? "default" : "secondary"} className={doc.status === "approved" ? "bg-green-600 text-white" : "bg-amber-500 text-white"}>
+                      {doc.status === "approved" ? "✓ Approved" : "⏳ Pending"}
+                    </Badge>
+                    <a href={doc.url} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">View</a>
+                    {isSuperAdmin && (
+                      <>
+                        {doc.status === "pending" && (
+                          <Button size="sm" variant="default" className="h-7 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleApproveDocument(doc.id)} disabled={approveDocument.isPending}>
+                            <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Approve
+                          </Button>
+                        )}
+                        <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => handleDeleteDocument(doc.id)} disabled={deleteDocument.isPending}>
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
+              {documents?.length === 0 && (
+                <div className="py-8 text-center border-2 border-dashed rounded-xl text-muted-foreground">
+                  <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                  No documents added yet.
+                </div>
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="updates" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Post Update</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Post Update</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={handleAddUpdate} className="space-y-4">
-                  <Textarea 
-                    required
-                    placeholder="Write an update for the client..."
-                    value={newUpdateMsg}
-                    onChange={(e) => setNewUpdateMsg(e.target.value)}
-                    className="min-h-[100px]"
-                  />
-                  <Button type="submit" disabled={addUpdate.isPending}>
-                    Post Update
-                  </Button>
+                  <Textarea required placeholder="Write an update for the client..." value={newUpdateMsg} onChange={(e) => setNewUpdateMsg(e.target.value)} className="min-h-[100px]" />
+                  <Button type="submit" disabled={addUpdate.isPending}>Post Update</Button>
                 </form>
               </CardContent>
             </Card>
-            
             <div className="space-y-4">
               {updates?.map((update) => (
                 <Card key={update.id}>
                   <CardContent className="p-4">
-                    <div className="text-sm text-muted-foreground mb-2">
-                      {format(new Date(update.postedAt), 'PPp')}
-                    </div>
+                    <div className="text-sm text-muted-foreground mb-2">{format(new Date(update.postedAt), 'PPp')}</div>
                     <p className="whitespace-pre-wrap">{update.message}</p>
                   </CardContent>
                 </Card>
@@ -450,9 +404,7 @@ export default function AdminManageProject() {
 
           <TabsContent value="payments" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Record Payment Request</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Record Payment Request</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={handleAddPayment} className="flex flex-col md:flex-row gap-4 items-end">
                   <div className="flex-1 space-y-2 w-full">
@@ -460,16 +412,13 @@ export default function AdminManageProject() {
                     <Input required value={paymentLabel} onChange={(e) => setPaymentLabel(e.target.value)} />
                   </div>
                   <div className="flex-1 space-y-2 w-full">
-                    <label className="text-sm font-medium">Amount</label>
+                    <label className="text-sm font-medium">Amount (Rs.)</label>
                     <Input required type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
                   </div>
-                  <Button type="submit" disabled={addPayment.isPending}>
-                    <Plus className="h-4 w-4 mr-2" /> Add
-                  </Button>
+                  <Button type="submit" disabled={addPayment.isPending}><Plus className="h-4 w-4 mr-2" /> Add</Button>
                 </form>
               </CardContent>
             </Card>
-
             <Card>
               <CardContent className="p-0">
                 <table className="w-full text-sm text-left">
@@ -488,14 +437,8 @@ export default function AdminManageProject() {
                         <td className="px-4 py-3">Rs. {payment.amount}</td>
                         <td className="px-4 py-3">{payment.status}</td>
                         <td className="px-4 py-3">
-                          <Select 
-                            value={payment.status} 
-                            onValueChange={(val) => handleUpdatePaymentStatus(payment.id, val)}
-                            disabled={updatePayment.isPending}
-                          >
-                            <SelectTrigger className="w-[130px] h-8">
-                              <SelectValue />
-                            </SelectTrigger>
+                          <Select value={payment.status} onValueChange={(val) => handleUpdatePaymentStatus(payment.id, val)} disabled={updatePayment.isPending}>
+                            <SelectTrigger className="w-[130px] h-8"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="pending">Pending</SelectItem>
                               <SelectItem value="paid">Paid</SelectItem>

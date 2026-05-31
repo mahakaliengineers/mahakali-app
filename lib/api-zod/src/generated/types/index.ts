@@ -9,6 +9,8 @@
 export * from './authUser';
 export * from './clientInput';
 export * from './clientUser';
+export * from './comment';
+export * from './commentInput';
 export * from './document';
 export * from './documentInput';
 export * from './healthStatus';
@@ -29,3 +31,5 @@ export * from './update';
 export * from './updateInput';
 export * from './uploadUrlInput';
 export * from './uploadUrlResponse';
+export * from './userRoleUpdate';
+export * from './userRoleUpdateRole';

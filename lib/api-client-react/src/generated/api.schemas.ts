@@ -49,6 +49,19 @@ export interface ClientInput {
   clientNumber?: string;
 }
 
+export type UserRoleUpdateRole = typeof UserRoleUpdateRole[keyof typeof UserRoleUpdateRole];
+
+
+export const UserRoleUpdateRole = {
+  client: 'client',
+  admin: 'admin',
+  super_admin: 'super_admin',
+} as const;
+
+export interface UserRoleUpdate {
+  role: UserRoleUpdateRole;
+}
+
 export interface Project {
   id: number;
   clientId: number;
@@ -114,9 +127,12 @@ export interface ProjectUpdate {
 export interface Photo {
   id: number;
   projectId: number;
+  /** @nullable */
+  uploadedById?: number | null;
   url: string;
   /** @nullable */
   caption?: string | null;
+  status: string;
   uploadedAt: string;
 }
 
@@ -128,9 +144,12 @@ export interface PhotoInput {
 export interface Document {
   id: number;
   projectId: number;
+  /** @nullable */
+  uploadedById?: number | null;
   name: string;
   url: string;
   type: string;
+  status: string;
   uploadedAt: string;
 }
 
@@ -138,6 +157,19 @@ export interface DocumentInput {
   name: string;
   url: string;
   type?: string;
+}
+
+export interface Comment {
+  id: number;
+  projectId: number;
+  userId: number;
+  authorName: string;
+  message: string;
+  createdAt: string;
+}
+
+export interface CommentInput {
+  message: string;
 }
 
 export interface Update {

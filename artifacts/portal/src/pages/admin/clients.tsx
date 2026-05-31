@@ -198,7 +198,7 @@ export default function AdminClients() {
                           <span className="text-muted-foreground">Client ID preview:</span>
                           <span className="font-mono font-bold text-primary tracking-widest">
                             {String(form.watch("clientNumber") || "?").padStart(5, "0")}
-                            {form.watch("fiscalYear") ? `-${form.watch("fiscalYear").replace("/", "")}` : ""}
+                            {form.watch("fiscalYear") ? `-${(form.watch("fiscalYear") ?? "").replace("/", "")}` : ""}
                           </span>
                         </div>
                       )}

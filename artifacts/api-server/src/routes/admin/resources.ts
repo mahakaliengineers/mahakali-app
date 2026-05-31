@@ -12,10 +12,29 @@ import {
 
 const router = Router();
 
+async function getSessionUser(userId: number) {
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  return user ?? null;
+}
+
 function requireAdmin(req: any, res: any, next: any) {
   if (!req.session?.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
-  db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1).then(([user]) => {
-    if (!user || user.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
+  getSessionUser(req.session.userId).then((user) => {
+    if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+      res.status(403).json({ error: "Forbidden" }); return;
+    }
+    req.sessionUser = user;
+    next();
+  }).catch(next);
+}
+
+function requireSuperAdmin(req: any, res: any, next: any) {
+  if (!req.session?.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+  getSessionUser(req.session.userId).then((user) => {
+    if (!user || user.role !== "super_admin") {
+      res.status(403).json({ error: "Forbidden — Super Admin only" }); return;
+    }
+    req.sessionUser = user;
     next();
   }).catch(next);
 }
@@ -26,12 +45,24 @@ router.post("/admin/projects/:id/photos", requireAdmin, async (req, res) => {
   const parsed = AddPhotoBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid request body" }); return; }
   const [photo] = await db.insert(photosTable).values({
-    projectId: id, url: parsed.data.url, caption: parsed.data.caption ?? null,
+    projectId: id,
+    url: parsed.data.url,
+    caption: parsed.data.caption ?? null,
+    uploadedById: req.session!.userId as number,
+    status: "pending",
   }).returning();
   res.status(201).json(photo);
 });
 
-router.delete("/admin/photos/:id", requireAdmin, async (req, res) => {
+router.patch("/admin/photos/:id/approve", requireSuperAdmin, async (req, res) => {
+  const id = parseInt(req.params["id"]!, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [photo] = await db.update(photosTable).set({ status: "approved" }).where(eq(photosTable.id, id)).returning();
+  if (!photo) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(photo);
+});
+
+router.delete("/admin/photos/:id", requireSuperAdmin, async (req, res) => {
   const id = parseInt(req.params["id"]!, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(photosTable).where(eq(photosTable.id, id));
@@ -44,9 +75,29 @@ router.post("/admin/projects/:id/documents", requireAdmin, async (req, res) => {
   const parsed = AddDocumentBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid request body" }); return; }
   const [doc] = await db.insert(documentsTable).values({
-    projectId: id, name: parsed.data.name, url: parsed.data.url, type: parsed.data.type ?? "other",
+    projectId: id,
+    name: parsed.data.name,
+    url: parsed.data.url,
+    type: parsed.data.type ?? "other",
+    uploadedById: req.session!.userId as number,
+    status: "pending",
   }).returning();
   res.status(201).json(doc);
+});
+
+router.patch("/admin/documents/:id/approve", requireSuperAdmin, async (req, res) => {
+  const id = parseInt(req.params["id"]!, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [doc] = await db.update(documentsTable).set({ status: "approved" }).where(eq(documentsTable.id, id)).returning();
+  if (!doc) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(doc);
+});
+
+router.delete("/admin/documents/:id", requireSuperAdmin, async (req, res) => {
+  const id = parseInt(req.params["id"]!, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(documentsTable).where(eq(documentsTable.id, id));
+  res.status(204).send();
 });
 
 router.post("/admin/projects/:id/updates", requireAdmin, async (req, res) => {

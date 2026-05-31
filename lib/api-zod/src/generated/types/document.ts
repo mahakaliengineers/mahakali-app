@@ -9,8 +9,11 @@
 export interface Document {
   id: number;
   projectId: number;
+  /** @nullable */
+  uploadedById?: number | null;
   name: string;
   url: string;
   type: string;
+  status: string;
   uploadedAt: string;
 }

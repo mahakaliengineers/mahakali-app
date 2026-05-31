@@ -1,53 +1,73 @@
+import { useState } from "react";
 import { useRoute } from "wouter";
 import { Layout } from "@/components/layout";
 import { 
-  useGetProject, 
-  getGetProjectQueryKey,
-  useListMilestones, 
-  getListMilestonesQueryKey,
-  useListPhotos, 
-  getListPhotosQueryKey,
-  useListDocuments, 
-  getListDocumentsQueryKey,
-  useListUpdates, 
-  getListUpdatesQueryKey,
-  useListPayments,
-  getListPaymentsQueryKey
+  useGetProject, getGetProjectQueryKey,
+  useListMilestones, getListMilestonesQueryKey,
+  useListPhotos, getListPhotosQueryKey,
+  useListDocuments, getListDocumentsQueryKey,
+  useListUpdates, getListUpdatesQueryKey,
+  useListPayments, getListPaymentsQueryKey,
+  useListComments, getListCommentsQueryKey,
+  useAddComment,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CalendarDays, MapPin, CheckCircle2, Circle, FileText, Download, MessageSquare, Image as ImageIcon, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, CalendarDays, MapPin, CheckCircle2, Circle, FileText, Download, MessageSquare, Image as ImageIcon, CreditCard, Send } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProjectDetail() {
   const [match, params] = useRoute("/projects/:id");
   const projectId = match && params?.id ? parseInt(params.id, 10) : 0;
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [commentText, setCommentText] = useState("");
 
   const { data: project, isLoading: isProjectLoading } = useGetProject(projectId, { 
     query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) } 
   });
-  
   const { data: milestones } = useListMilestones(projectId, {
     query: { enabled: !!projectId, queryKey: getListMilestonesQueryKey(projectId) }
   });
-  
   const { data: photos } = useListPhotos(projectId, {
     query: { enabled: !!projectId, queryKey: getListPhotosQueryKey(projectId) }
   });
-  
   const { data: documents } = useListDocuments(projectId, {
     query: { enabled: !!projectId, queryKey: getListDocumentsQueryKey(projectId) }
   });
-  
   const { data: updates } = useListUpdates(projectId, {
     query: { enabled: !!projectId, queryKey: getListUpdatesQueryKey(projectId) }
   });
-  
   const { data: payments } = useListPayments(projectId, {
     query: { enabled: !!projectId, queryKey: getListPaymentsQueryKey(projectId) }
   });
+  const { data: comments } = useListComments(projectId, {
+    query: { enabled: !!projectId, queryKey: getListCommentsQueryKey(projectId) }
+  });
+
+  const addComment = useAddComment();
+
+  const handleAddComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    addComment.mutate({ id: projectId, data: { message: commentText.trim() } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListCommentsQueryKey(projectId) });
+        setCommentText("");
+        toast({ title: "Comment posted" });
+      },
+      onError: () => toast({ title: "Failed to post comment", variant: "destructive" }),
+    });
+  };
 
   if (isProjectLoading) {
     return (
@@ -92,20 +112,26 @@ export default function ProjectDetail() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid grid-cols-3 md:grid-cols-6 h-auto p-1">
+          <TabsList className="grid grid-cols-4 md:grid-cols-7 h-auto p-1">
             <TabsTrigger value="overview" className="py-2.5">Overview</TabsTrigger>
             <TabsTrigger value="milestones" className="py-2.5">Milestones</TabsTrigger>
             <TabsTrigger value="photos" className="py-2.5">Photos</TabsTrigger>
             <TabsTrigger value="documents" className="py-2.5">Documents</TabsTrigger>
             <TabsTrigger value="updates" className="py-2.5">Updates</TabsTrigger>
             <TabsTrigger value="payments" className="py-2.5">Payments</TabsTrigger>
+            <TabsTrigger value="comments" className="py-2.5">
+              Comments
+              {comments && comments.length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                  {comments.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6 space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Project Status</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Project Status</CardTitle></CardHeader>
               <CardContent className="space-y-6">
                 <div>
                   <div className="flex justify-between text-sm mb-2 font-medium">
@@ -114,7 +140,6 @@ export default function ProjectDetail() {
                   </div>
                   <Progress value={project.progress} className="h-3" />
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
@@ -139,7 +164,7 @@ export default function ProjectDetail() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground flex items-center gap-2">
-                        <span className="h-4 w-4 flex items-center justify-center bg-muted rounded-full text-[10px]">C</span> 
+                        <span className="h-4 w-4 flex items-center justify-center bg-muted rounded-full text-[10px]">C</span>
                         Client
                       </span>
                       <span className="text-sm font-medium">{project.client.name}</span>
@@ -175,7 +200,7 @@ export default function ProjectDetail() {
                           )}
                           {milestone.completedAt && (
                             <span className="text-xs font-medium text-primary mt-2 flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" /> 
+                              <CheckCircle2 className="h-3 w-3" />
                               Completed {format(new Date(milestone.completedAt), 'MMM d, yyyy')}
                             </span>
                           )}
@@ -198,9 +223,9 @@ export default function ProjectDetail() {
               {photos?.map((photo) => (
                 <Card key={photo.id} className="overflow-hidden group cursor-pointer">
                   <div className="aspect-[4/3] relative">
-                    <img 
-                      src={photo.url} 
-                      alt={photo.caption || 'Project photo'} 
+                    <img
+                      src={photo.url}
+                      alt={photo.caption || 'Project photo'}
                       className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
@@ -237,9 +262,9 @@ export default function ProjectDetail() {
                           </p>
                         </div>
                       </div>
-                      <a 
-                        href={doc.url} 
-                        target="_blank" 
+                      <a
+                        href={doc.url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 text-muted-foreground hover:text-primary transition-colors"
                       >
@@ -309,9 +334,7 @@ export default function ProjectDetail() {
                     <tbody className="divide-y">
                       {payments?.map((payment) => (
                         <tr key={payment.id} className="bg-card hover:bg-muted/50 transition-colors">
-                          <td className="px-6 py-4 font-medium whitespace-nowrap">
-                            {payment.label}
-                          </td>
+                          <td className="px-6 py-4 font-medium whitespace-nowrap">{payment.label}</td>
                           <td className="px-6 py-4 font-mono font-medium">
                             Rs. {parseFloat(payment.amount).toLocaleString()}
                           </td>
@@ -320,8 +343,8 @@ export default function ProjectDetail() {
                           </td>
                           <td className="px-6 py-4">
                             <Badge variant={
-                              payment.status === 'paid' ? 'default' : 
-                              payment.status === 'overdue' ? 'destructive' : 
+                              payment.status === 'paid' ? 'default' :
+                              payment.status === 'overdue' ? 'destructive' :
                               'secondary'
                             }>
                               {payment.status}
@@ -346,6 +369,65 @@ export default function ProjectDetail() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="comments" className="mt-6 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Leave a Comment</CardTitle>
+                <CardDescription>Ask questions or share feedback about this project.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddComment} className="flex gap-3 items-start">
+                  <Textarea
+                    placeholder="Write your comment here..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    className="min-h-[80px] flex-1"
+                    required
+                  />
+                  <Button type="submit" disabled={addComment.isPending || !commentText.trim()} className="mt-0.5">
+                    {addComment.isPending
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Send className="h-4 w-4" />}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-3">
+              {comments?.map((comment) => (
+                <Card key={comment.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-primary font-semibold text-sm shrink-0">
+                        {comment.authorName?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm">{comment.authorName}</span>
+                          {comment.userId === user?.id && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1.5">You</Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            {format(new Date(comment.createdAt), 'MMM d, yyyy h:mm a')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                          {comment.message}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {comments?.length === 0 && (
+                <div className="text-center py-10 border-2 border-dashed rounded-xl text-muted-foreground">
+                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                  No comments yet. Be the first to leave one!
+                </div>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     </Layout>
@@ -354,29 +436,13 @@ export default function ProjectDetail() {
 
 function BuildingIcon(props: any) {
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect width="16" height="20" x="4" y="2" rx="2" ry="2" />
       <path d="M9 22v-4h6v4" />
-      <path d="M8 6h.01" />
-      <path d="M16 6h.01" />
-      <path d="M12 6h.01" />
-      <path d="M12 10h.01" />
-      <path d="M12 14h.01" />
-      <path d="M16 10h.01" />
-      <path d="M16 14h.01" />
-      <path d="M8 10h.01" />
-      <path d="M8 14h.01" />
+      <path d="M8 6h.01" /><path d="M16 6h.01" /><path d="M12 6h.01" />
+      <path d="M12 10h.01" /><path d="M12 14h.01" />
+      <path d="M16 10h.01" /><path d="M16 14h.01" />
+      <path d="M8 10h.01" /><path d="M8 14h.01" />
     </svg>
-  )
+  );
 }

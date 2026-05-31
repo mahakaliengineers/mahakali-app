@@ -106,8 +106,10 @@ export const ListPhotosParams = zod.object({
 export const ListPhotosResponseItem = zod.object({
   "id": zod.number(),
   "projectId": zod.number(),
+  "uploadedById": zod.number().nullish(),
   "url": zod.string(),
   "caption": zod.string().nullish(),
+  "status": zod.string(),
   "uploadedAt": zod.string()
 })
 export const ListPhotosResponse = zod.array(ListPhotosResponseItem)
@@ -123,9 +125,11 @@ export const ListDocumentsParams = zod.object({
 export const ListDocumentsResponseItem = zod.object({
   "id": zod.number(),
   "projectId": zod.number(),
+  "uploadedById": zod.number().nullish(),
   "name": zod.string(),
   "url": zod.string(),
   "type": zod.string(),
+  "status": zod.string(),
   "uploadedAt": zod.string()
 })
 export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem)
@@ -184,6 +188,36 @@ export const ListMilestonesResponseItem = zod.object({
   "createdAt": zod.string()
 })
 export const ListMilestonesResponse = zod.array(ListMilestonesResponseItem)
+
+
+/**
+ * @summary List project comments
+ */
+export const ListCommentsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListCommentsResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "userId": zod.number(),
+  "authorName": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string()
+})
+export const ListCommentsResponse = zod.array(ListCommentsResponseItem)
+
+
+/**
+ * @summary Add a comment to a project
+ */
+export const AddCommentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AddCommentBody = zod.object({
+  "message": zod.string()
+})
 
 
 /**
@@ -281,10 +315,28 @@ export const AddPhotoBody = zod.object({
 
 
 /**
- * @summary Delete a photo
+ * @summary Delete a photo (super admin only)
  */
 export const DeletePhotoParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Approve a photo (super admin only)
+ */
+export const ApprovePhotoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ApprovePhotoResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "uploadedById": zod.number().nullish(),
+  "url": zod.string(),
+  "caption": zod.string().nullish(),
+  "status": zod.string(),
+  "uploadedAt": zod.string()
 })
 
 
@@ -299,6 +351,33 @@ export const AddDocumentBody = zod.object({
   "name": zod.string(),
   "url": zod.string(),
   "type": zod.string().optional()
+})
+
+
+/**
+ * @summary Delete a document (super admin only)
+ */
+export const DeleteDocumentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Approve a document (super admin only)
+ */
+export const ApproveDocumentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ApproveDocumentResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "uploadedById": zod.number().nullish(),
+  "name": zod.string(),
+  "url": zod.string(),
+  "type": zod.string(),
+  "status": zod.string(),
+  "uploadedAt": zod.string()
 })
 
 
@@ -386,6 +465,31 @@ export const UpdatePaymentResponse = zod.object({
   "status": zod.string(),
   "dueDate": zod.string().nullish(),
   "paidAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Update a user role (super admin only)
+ */
+export const UpdateUserRoleParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateUserRoleBody = zod.object({
+  "role": zod.enum(['client', 'admin', 'super_admin'])
+})
+
+export const UpdateUserRoleResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "siteLocation": zod.string().nullish(),
+  "fiscalYear": zod.string().nullish(),
+  "clientNumber": zod.string().nullish(),
+  "clientCode": zod.string().nullish(),
+  "role": zod.string(),
   "createdAt": zod.string()
 })
 

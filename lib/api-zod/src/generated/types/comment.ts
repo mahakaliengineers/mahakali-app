@@ -6,14 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Photo {
+export interface Comment {
   id: number;
   projectId: number;
-  /** @nullable */
-  uploadedById?: number | null;
-  url: string;
-  /** @nullable */
-  caption?: string | null;
-  status: string;
-  uploadedAt: string;
+  userId: number;
+  authorName: string;
+  message: string;
+  createdAt: string;
 }
