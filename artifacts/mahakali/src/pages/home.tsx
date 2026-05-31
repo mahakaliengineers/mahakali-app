@@ -195,7 +195,7 @@ function CalculatorTool() {
     const v = parseFloat(costArea);
     const floors = parseFloat(costFloors) || 0;
     if (isNaN(v) || v <= 0 || floors <= 0) { setCostResult(null); return; }
-    const totalSqft = v * AREA_INPUT_UNITS[costAreaUnit].toSqft * floors;
+    const totalSqft = v * AREA_INPUT_UNITS[costAreaUnit].toSqft * (floors + 1);
     const builtupRatio = costBuildingType === "residential" ? 0.70 : 0.60;
     const builtupSqft = totalSqft * builtupRatio;
     const perSqft = COST_RATES[costBuildingType][costGrade];
@@ -588,7 +588,7 @@ function CalculatorTool() {
                   <div className="p-3 bg-white/5 border border-white/10 rounded text-center">
                     <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Total Area</p>
                     <p className="text-lg font-mono font-bold text-white">{Math.round(costResult.totalSqft).toLocaleString("en-IN")}</p>
-                    <p className="text-xs text-white/30">sq.ft ({costFloors} floor{costFloors > 1 ? "s" : ""})</p>
+                    <p className="text-xs text-white/30">sq.ft ({costFloors} floor{parseFloat(costFloors) > 1 ? "s" : ""} + 1 foundation)</p>
                   </div>
                   <div className="p-3 bg-accent/10 border border-accent/30 rounded text-center">
                     <p className="text-xs text-accent/70 uppercase tracking-wider mb-1">Built-up Area</p>
@@ -608,6 +608,9 @@ function CalculatorTool() {
                     </p>
                     <p className="text-white/40 text-xs mt-1">
                       Based on {Math.round(costResult.sqft).toLocaleString("en-IN")} sq.ft built-up × Rs. {costResult.perSqft.toLocaleString("en-IN")}/sq.ft
+                    </p>
+                    <p className="text-white/30 text-xs mt-2 leading-relaxed">
+                      Includes civil structure, finishing, electrical, plumbing, doors &amp; windows, and a contingency allowance. Foundation slab area (1 extra floor) is added to account for excavation, footing, and substructure costs.
                     </p>
                   </>
                 ) : (
