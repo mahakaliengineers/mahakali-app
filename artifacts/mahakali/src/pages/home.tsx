@@ -103,7 +103,7 @@ const AREA_UNITS: { label: string; toSqm: number }[] = [
 const COST_RATES: Record<string, Record<string, number>> = {
   residential: { basic: 2900, standard: 3500, premium: 4500, luxury: 6000 },
   commercial:  { basic: 3500, standard: 4500, premium: 5500, luxury: 7500 },
-  industrial:  { basic: 1500, standard: 2100, premium: 3000, luxury: 4000 },
+  industrial:  { basic: 3500, standard: 5000, premium: 7000, luxury: 8500 },
 };
 
 const COST_BREAKDOWN = [
