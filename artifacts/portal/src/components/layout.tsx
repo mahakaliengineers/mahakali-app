@@ -44,9 +44,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const isStaff = user.role === "admin" || user.role === "super_admin";
+
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
-    ...(user.role === "admin"
+    ...(isStaff
       ? [
           { href: "/admin/projects", label: "All Projects", icon: FolderKanban },
           { href: "/admin/clients", label: "Clients", icon: Users },

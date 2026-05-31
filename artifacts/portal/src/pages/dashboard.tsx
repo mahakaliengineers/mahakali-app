@@ -75,7 +75,7 @@ export default function Dashboard() {
                   </div>
 
                   <div className="pt-2">
-                    <Link href={user?.role === "admin" ? `/admin/projects/${project.id}/manage` : `/projects/${project.id}`}>
+                    <Link href={(user?.role === "admin" || user?.role === "super_admin") ? `/admin/projects/${project.id}/manage` : `/projects/${project.id}`}>
                       <Button className="w-full" variant="outline">
                         View Details <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>

@@ -40,7 +40,8 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
-      setLocation("/dashboard");
+      const isStaff = user.role === "admin" || user.role === "super_admin";
+      setLocation(isStaff ? "/admin/projects" : "/dashboard");
     }
   }, [user, setLocation]);
 
@@ -60,7 +61,8 @@ export default function Login() {
       {
         onSuccess: (loggedInUser) => {
           queryClient.setQueryData(getGetMeQueryKey(), loggedInUser);
-          setLocation("/dashboard");
+          const isStaff = loggedInUser.role === "admin" || loggedInUser.role === "super_admin";
+          setLocation(isStaff ? "/admin/projects" : "/dashboard");
         },
         onError: () => {
           toast({
