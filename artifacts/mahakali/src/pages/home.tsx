@@ -180,7 +180,7 @@ function CalculatorTool() {
   const [costFloors, setCostFloors] = useState(1);
   const [costBuildingType, setCostBuildingType] = useState("residential");
   const [costGrade, setCostGrade] = useState("standard");
-  const [costResult, setCostResult] = useState<{ total: number; perSqft: number; sqft: number } | null>(null);
+  const [costResult, setCostResult] = useState<{ total: number; perSqft: number; sqft: number; totalSqft: number } | null>(null);
 
   // Plot calculator state
   const [plotUnit, setPlotUnit] = useState<"ft" | "m">("ft");
@@ -194,9 +194,11 @@ function CalculatorTool() {
   useEffect(() => {
     const v = parseFloat(costArea);
     if (isNaN(v) || v <= 0) { setCostResult(null); return; }
-    const sqft = v * AREA_INPUT_UNITS[costAreaUnit].toSqft * costFloors;
+    const totalSqft = v * AREA_INPUT_UNITS[costAreaUnit].toSqft * costFloors;
+    const builtupRatio = costBuildingType === "residential" ? 0.70 : 0.60;
+    const builtupSqft = totalSqft * builtupRatio;
     const perSqft = COST_RATES[costBuildingType][costGrade];
-    setCostResult({ total: sqft * perSqft, perSqft, sqft });
+    setCostResult({ total: builtupSqft * perSqft, perSqft, sqft: builtupSqft, totalSqft });
   }, [costArea, costAreaUnit, costFloors, costBuildingType, costGrade]);
 
   const LAND_SQM_PER = { ropani: 508.72, aana: 508.72 / 16, paisa: 508.72 / 64, dam: 508.72 / 256, bigha: 6772.63, kattha: 6772.63 / 20, dhur: 6772.63 / 400 };
@@ -523,7 +525,7 @@ function CalculatorTool() {
 
               {/* Plot Area */}
               <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Plot / Floor Area (per floor)</label>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Total Plot Area (per floor)</label>
                 <div className="flex gap-2">
                   <input
                     type="number"
@@ -585,6 +587,22 @@ function CalculatorTool() {
 
             {/* Results Panel */}
             <div className="flex flex-col gap-4">
+              {/* Area breakdown */}
+              {costResult && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-white/5 border border-white/10 rounded text-center">
+                    <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Total Area</p>
+                    <p className="text-lg font-mono font-bold text-white">{Math.round(costResult.totalSqft).toLocaleString("en-IN")}</p>
+                    <p className="text-xs text-white/30">sq.ft ({costFloors} floor{costFloors > 1 ? "s" : ""})</p>
+                  </div>
+                  <div className="p-3 bg-accent/10 border border-accent/30 rounded text-center">
+                    <p className="text-xs text-accent/70 uppercase tracking-wider mb-1">Built-up Area</p>
+                    <p className="text-lg font-mono font-bold text-accent">{Math.round(costResult.sqft).toLocaleString("en-IN")}</p>
+                    <p className="text-xs text-white/30">sq.ft ({costBuildingType === "residential" ? "70%" : "60%"} of total)</p>
+                  </div>
+                </div>
+              )}
+
               {/* Total Cost */}
               <div className="p-6 border-2 border-primary/40 rounded bg-primary/5 text-center">
                 <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Estimated Total Cost</p>
@@ -594,7 +612,7 @@ function CalculatorTool() {
                       {fmtNPR(costResult.total)}
                     </p>
                     <p className="text-white/40 text-xs mt-1">
-                      {Math.round(costResult.sqft).toLocaleString("en-IN")} sq.ft total built-up area
+                      Based on {Math.round(costResult.sqft).toLocaleString("en-IN")} sq.ft built-up × Rs. {costResult.perSqft.toLocaleString("en-IN")}/sq.ft
                     </p>
                   </>
                 ) : (
