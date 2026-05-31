@@ -1,21 +1,28 @@
+import { useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useLogout } from "@workspace/api-client-react";
 import { 
-  Building2, 
   LayoutDashboard, 
   Users, 
   FolderKanban,
   LogOut,
   Loader2
 } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
   const logout = useLogout();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      setLocation("/");
+    }
+  }, [isLoading, user, setLocation]);
 
   if (isLoading) {
     return (
@@ -26,7 +33,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    setLocation("/");
     return null;
   }
 
@@ -53,9 +59,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className="w-64 border-r bg-card flex flex-col hidden md:flex">
         <div className="h-16 flex items-center px-6 border-b">
-          <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg text-primary">
-            <Building2 className="h-6 w-6" />
-            <span>Mahakali Eng.</span>
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <img src={logoImg} alt="Mahakali Engineers and Developers" className="h-9 w-auto object-contain" />
+            <div className="leading-tight">
+              <div className="text-sm font-bold text-foreground">Mahakali Engineers</div>
+              <div className="text-xs text-muted-foreground">& Developers Pvt. Ltd.</div>
+            </div>
           </Link>
         </div>
         
@@ -95,8 +104,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         <header className="h-16 border-b bg-card flex items-center px-6 md:hidden">
-          <Building2 className="h-6 w-6 text-primary mr-2" />
-          <span className="font-bold">Mahakali</span>
+          <img src={logoImg} alt="Mahakali Engineers and Developers" className="h-8 w-auto object-contain mr-2" />
+          <div className="leading-tight">
+            <div className="text-sm font-bold">Mahakali Engineers</div>
+            <div className="text-xs text-muted-foreground">& Developers Pvt. Ltd.</div>
+          </div>
         </header>
         <div className="flex-1 p-6 md:p-8 overflow-auto">
           <div className="max-w-6xl mx-auto">
