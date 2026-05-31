@@ -210,7 +210,7 @@ function sqmToRapd(sqm: number) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function CalculatorTool() {
-  const [tab, setTab] = useState<"land" | "length" | "area" | "cost" | "plot">("land");
+  const [tab, setTab] = useState<"land" | "length" | "cost" | "plot">("land");
   const [landSystem, setLandSystem] = useState<LandSystem>("ropani");
   const [landInput, setLandInput] = useState("");
   const [landUnit, setLandUnit] = useState("ropani");
@@ -316,7 +316,6 @@ function CalculatorTool() {
         {[
           { key: "land", label: "🏔 Land Units (Nepal)" },
           { key: "length", label: "📏 Length" },
-          { key: "area", label: "⬜ Area" },
           { key: "cost", label: "🏗 Cost Estimator" },
           { key: "plot", label: "📐 Plot Area" },
         ].map(t => (
@@ -336,6 +335,7 @@ function CalculatorTool() {
 
       {/* Land Tab */}
       {tab === "land" && (
+        <>
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-4">
             <div className="flex gap-2 mb-2">
@@ -399,6 +399,45 @@ function CalculatorTool() {
             )}
           </div>
         </div>
+
+        {/* Area Converter — merged into Land Units */}
+        <div className="mt-8 pt-8 border-t border-white/10">
+          <p className="text-xs text-white/50 uppercase tracking-wider mb-4">Area Unit Converter</p>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Value</label>
+                <input type="number" placeholder="Enter value" value={areaValue} onChange={e => setAreaValue(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">From</label>
+                <select value={areaFrom} onChange={e => setAreaFrom(Number(e.target.value))} className={selectCls}>
+                  {AREA_UNITS.map((u, i) => <option key={i} value={i} className="bg-gray-900">{u.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">To</label>
+                <select value={areaTo} onChange={e => setAreaTo(Number(e.target.value))} className={selectCls}>
+                  {AREA_UNITS.map((u, i) => <option key={i} value={i} className="bg-gray-900">{u.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col justify-center">
+              <p className="text-xs text-white/50 uppercase tracking-wider mb-3">Result</p>
+              <div className="p-8 border border-white/10 rounded bg-white/5 text-center">
+                {areaResult ? (
+                  <>
+                    <p className="text-4xl font-mono font-black text-primary mb-2">{areaResult}</p>
+                    <p className="text-white/50 text-sm">{AREA_UNITS[areaTo].label}</p>
+                  </>
+                ) : (
+                  <p className="text-white/30 text-sm">Enter a value to convert</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        </>
       )}
 
       {/* Length Tab */}
@@ -429,43 +468,6 @@ function CalculatorTool() {
                 <>
                   <p className="text-4xl font-mono font-black text-primary mb-2">{lengthResult}</p>
                   <p className="text-white/50 text-sm">{LENGTH_UNITS[lengthTo].label}</p>
-                </>
-              ) : (
-                <p className="text-white/30 text-sm">Enter a value to convert</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Area Tab */}
-      {tab === "area" && (
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Value</label>
-              <input type="number" placeholder="Enter value" value={areaValue} onChange={e => setAreaValue(e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">From</label>
-              <select value={areaFrom} onChange={e => setAreaFrom(Number(e.target.value))} className={selectCls}>
-                {AREA_UNITS.map((u, i) => <option key={i} value={i} className="bg-gray-900">{u.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">To</label>
-              <select value={areaTo} onChange={e => setAreaTo(Number(e.target.value))} className={selectCls}>
-                {AREA_UNITS.map((u, i) => <option key={i} value={i} className="bg-gray-900">{u.label}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="flex flex-col justify-center">
-            <p className="text-xs text-white/50 uppercase tracking-wider mb-3">Result</p>
-            <div className="p-8 border border-white/10 rounded bg-white/5 text-center">
-              {areaResult ? (
-                <>
-                  <p className="text-4xl font-mono font-black text-primary mb-2">{areaResult}</p>
-                  <p className="text-white/50 text-sm">{AREA_UNITS[areaTo].label}</p>
                 </>
               ) : (
                 <p className="text-white/30 text-sm">Enter a value to convert</p>
