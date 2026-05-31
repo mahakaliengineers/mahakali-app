@@ -797,8 +797,8 @@ function CalculatorTool() {
                 </div>
 
                 <div className="p-3 bg-white/5 border border-white/10 rounded text-xs text-white/40 leading-relaxed">
-                  <span className="text-primary/60">Hilly: </span>1 Ropani = 16 Aana = 64 Paisa = 256 Dam = 508.72 sq.m<br />
-                  <span className="text-amber-400/60">Tarai: </span>1 Bigha = 20 Kattha = 400 Dhur = 6,772.63 sq.m · Calculated using Heron's formula
+                  <span className="text-primary/60">Hilly: </span>1 Ropani = 16 Aana = 64 Paisa = 256 Dam = 508.72 sq.m (5,476 sq.ft)<br />
+                  <span className="text-amber-400/60">Tarai: </span>1 Bigha = 20 Kattha = 400 Dhur = 6,772.63 sq.m (72,900 sq.ft) · Calculated using Heron's formula
                 </div>
               </>
             )}
