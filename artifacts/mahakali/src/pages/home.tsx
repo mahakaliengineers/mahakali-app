@@ -179,10 +179,38 @@ function fmtNPR(n: number) {
   return `Rs. ${Math.round(n).toLocaleString("en-IN")}`;
 }
 
+// ─── Plot Area Calculator ─────────────────────────────────────────────────────
+
+interface PlotResult {
+  sqm: number;
+  sqft: number;
+  ropani: number;
+  aana: number;
+  paisa: number;
+  dam: number;
+}
+
+function heronArea(a: number, b: number, c: number): number {
+  const s = (a + b + c) / 2;
+  const val = s * (s - a) * (s - b) * (s - c);
+  return val > 0 ? Math.sqrt(val) : 0;
+}
+
+function sqmToRapd(sqm: number) {
+  const totalDam = sqm / DAAM_TO_SQM;
+  const ropani = Math.floor(totalDam / 256);
+  const rem1 = totalDam % 256;
+  const aana = Math.floor(rem1 / 16);
+  const rem2 = rem1 % 16;
+  const paisa = Math.floor(rem2 / 4);
+  const dam = Math.round(rem2 % 4);
+  return { ropani, aana, paisa, dam };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 function CalculatorTool() {
-  const [tab, setTab] = useState<"land" | "length" | "area" | "cost">("land");
+  const [tab, setTab] = useState<"land" | "length" | "area" | "cost" | "plot">("land");
   const [landSystem, setLandSystem] = useState<LandSystem>("ropani");
   const [landInput, setLandInput] = useState("");
   const [landUnit, setLandUnit] = useState("ropani");
@@ -206,6 +234,15 @@ function CalculatorTool() {
   const [costGrade, setCostGrade] = useState("standard");
   const [costResult, setCostResult] = useState<{ total: number; perSqft: number; sqft: number } | null>(null);
 
+  // Plot calculator state
+  const [plotUnit, setPlotUnit] = useState<"ft" | "m">("ft");
+  const [plotA, setPlotA] = useState("");
+  const [plotB, setPlotB] = useState("");
+  const [plotC, setPlotC] = useState("");
+  const [plotD, setPlotD] = useState("");
+  const [plotDiag, setPlotDiag] = useState("");
+  const [plotResult, setPlotResult] = useState<PlotResult | null>(null);
+
   useEffect(() => {
     const v = parseFloat(costArea);
     if (isNaN(v) || v <= 0) { setCostResult(null); return; }
@@ -223,6 +260,23 @@ function CalculatorTool() {
   }, [landInput, landUnit, landSystem]);
 
   useEffect(() => { convertLand(); }, [convertLand]);
+
+  useEffect(() => {
+    const factor = plotUnit === "ft" ? 0.3048 : 1;
+    const a = parseFloat(plotA) * factor;
+    const b = parseFloat(plotB) * factor;
+    const c = parseFloat(plotC) * factor;
+    const d = parseFloat(plotD) * factor;
+    const diag = parseFloat(plotDiag) * factor;
+    if ([a, b, c, d, diag].some(v => isNaN(v) || v <= 0)) { setPlotResult(null); return; }
+    const area1 = heronArea(a, b, diag);
+    const area2 = heronArea(c, d, diag);
+    if (area1 === 0 || area2 === 0) { setPlotResult(null); return; }
+    const sqm = area1 + area2;
+    const sqft = sqm * 10.7639;
+    const { ropani, aana, paisa, dam } = sqmToRapd(sqm);
+    setPlotResult({ sqm, sqft, ropani, aana, paisa, dam });
+  }, [plotA, plotB, plotC, plotD, plotDiag, plotUnit]);
 
   useEffect(() => {
     const v = parseFloat(lengthValue);
@@ -264,6 +318,7 @@ function CalculatorTool() {
           { key: "length", label: "📏 Length" },
           { key: "area", label: "⬜ Area" },
           { key: "cost", label: "🏗 Cost Estimator" },
+          { key: "plot", label: "📐 Plot Area" },
         ].map(t => (
           <button
             key={t.key}
@@ -588,6 +643,132 @@ function CalculatorTool() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Plot Area Tab */}
+      {tab === "plot" && (
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Inputs */}
+          <div className="space-y-4">
+            {/* Unit toggle */}
+            <div>
+              <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Measurement Unit</label>
+              <div className="flex gap-2">
+                {(["ft", "m"] as const).map(u => (
+                  <button
+                    key={u}
+                    onClick={() => setPlotUnit(u)}
+                    className={`flex-1 py-2.5 rounded text-sm font-bold transition-colors border ${
+                      plotUnit === u
+                        ? "bg-primary border-primary text-white"
+                        : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {u === "ft" ? "Feet (ft)" : "Meter (m)"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Diagram hint */}
+            <div className="p-3 bg-white/5 border border-white/10 rounded text-xs text-white/50 leading-relaxed">
+              <div className="font-bold text-white/70 mb-1">How to measure your plot:</div>
+              Draw a diagonal across your plot to split it into 2 triangles.<br />
+              Triangle 1 uses sides <span className="text-primary font-bold">A + B + Diagonal</span>.<br />
+              Triangle 2 uses sides <span className="text-accent font-bold">C + D + Diagonal</span>.
+            </div>
+
+            {/* Side A & B */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Side A ({plotUnit})</label>
+                <input type="number" min="0" placeholder="e.g. 40" value={plotA} onChange={e => setPlotA(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Side B ({plotUnit})</label>
+                <input type="number" min="0" placeholder="e.g. 35" value={plotB} onChange={e => setPlotB(e.target.value)} className={inputCls} />
+              </div>
+            </div>
+
+            {/* Diagonal */}
+            <div>
+              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Diagonal ({plotUnit})</label>
+              <input type="number" min="0" placeholder="e.g. 53" value={plotDiag} onChange={e => setPlotDiag(e.target.value)} className={inputCls} />
+            </div>
+
+            {/* Side C & D */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Side C ({plotUnit})</label>
+                <input type="number" min="0" placeholder="e.g. 38" value={plotC} onChange={e => setPlotC(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Side D ({plotUnit})</label>
+                <input type="number" min="0" placeholder="e.g. 42" value={plotD} onChange={e => setPlotD(e.target.value)} className={inputCls} />
+              </div>
+            </div>
+
+            <button
+              onClick={() => { setPlotA(""); setPlotB(""); setPlotC(""); setPlotD(""); setPlotDiag(""); }}
+              className="w-full py-2 text-xs font-semibold text-white/40 hover:text-white/70 border border-white/10 rounded transition-colors"
+            >
+              Clear All
+            </button>
+          </div>
+
+          {/* Results */}
+          <div className="space-y-3">
+            <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Plot Area Results</p>
+
+            {!plotResult ? (
+              <div className="flex flex-col items-center justify-center h-64 border border-white/10 rounded bg-white/5 text-white/30 text-sm gap-2">
+                <span className="text-3xl">📐</span>
+                Enter all 5 measurements to calculate area
+              </div>
+            ) : (
+              <>
+                {/* sq.m and sq.ft */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 border-2 border-primary/40 rounded bg-primary/5 text-center">
+                    <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Sq. Meters</p>
+                    <p className="text-2xl font-mono font-black text-primary">{plotResult.sqm.toFixed(2)}</p>
+                    <p className="text-xs text-white/40">sq.m</p>
+                  </div>
+                  <div className="p-4 border-2 border-accent/40 rounded bg-accent/5 text-center">
+                    <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Sq. Feet</p>
+                    <p className="text-2xl font-mono font-black text-accent">{plotResult.sqft.toFixed(2)}</p>
+                    <p className="text-xs text-white/40">sq.ft</p>
+                  </div>
+                </div>
+
+                {/* Ropani breakdown */}
+                <div className="border border-white/10 rounded overflow-hidden">
+                  <p className="text-xs text-white/50 uppercase tracking-wider px-4 py-3 border-b border-white/10 bg-white/5">
+                    Ropani System (Hilly Nepal — रोपनी)
+                  </p>
+                  <div className="grid grid-cols-4 divide-x divide-white/10">
+                    {[
+                      { label: "Ropani", nepali: "रोपनी", value: plotResult.ropani },
+                      { label: "Aana", nepali: "आना", value: plotResult.aana },
+                      { label: "Paisa", nepali: "पैसा", value: plotResult.paisa },
+                      { label: "Dam", nepali: "दाम", value: plotResult.dam },
+                    ].map((item, i) => (
+                      <div key={i} className="p-4 text-center">
+                        <p className="text-2xl font-mono font-black text-white">{item.value}</p>
+                        <p className="text-xs text-white/60 font-semibold mt-0.5">{item.label}</p>
+                        <p className="text-xs text-white/30">{item.nepali}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-white/5 border border-white/10 rounded text-xs text-white/40 leading-relaxed">
+                  1 Ropani = 16 Aana = 64 Paisa = 256 Dam = 508.72 sq.m · Calculated using Heron's formula
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
