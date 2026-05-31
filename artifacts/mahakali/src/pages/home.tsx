@@ -526,23 +526,23 @@ function CalculatorTool() {
 
               {/* Plot Area */}
               <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Total Plot Area (per floor)</label>
-                <div className="flex gap-2">
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Total Plot Area (per floor)</label>
+                <div className="flex gap-3">
                   <input
                     type="number"
                     min="0"
-                    placeholder=""
+                    placeholder="0"
                     value={costArea}
                     onChange={e => setCostArea(e.target.value)}
-                    className={inputCls + " flex-1"}
+                    className="flex-1 bg-white/8 border-2 border-white/20 hover:border-white/30 focus:border-primary focus:outline-none rounded-lg px-5 py-4 text-white text-2xl font-semibold placeholder:text-white/20 transition-colors"
                   />
                   <select
                     value={costAreaUnit}
                     onChange={e => setCostAreaUnit(Number(e.target.value))}
-                    className={selectCls + " w-44"}
+                    className="bg-white/8 border-2 border-white/20 hover:border-white/30 focus:border-primary focus:outline-none rounded-lg px-4 py-4 text-white text-base font-medium appearance-none cursor-pointer transition-colors w-48"
                   >
-                    <option value={0} className="bg-gray-900">Square Feet (sq.ft)</option>
-                    <option value={1} className="bg-gray-900">Square Meter (sq.m)</option>
+                    <option value={0} className="bg-gray-900">sq.ft</option>
+                    <option value={1} className="bg-gray-900">sq.m</option>
                   </select>
                 </div>
               </div>
