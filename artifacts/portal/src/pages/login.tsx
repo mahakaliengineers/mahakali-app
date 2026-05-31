@@ -18,7 +18,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -82,12 +83,10 @@ export default function Login() {
         />
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-8">
-            <div className="bg-primary p-2.5 rounded-lg shadow-lg">
-              <Building2 className="h-7 w-7 text-white" />
-            </div>
+            <img src={logoImg} alt="Mahakali Engineers and Developers" className="h-14 w-auto object-contain brightness-0 invert" />
             <div>
               <div className="text-xl font-bold text-white leading-tight">Mahakali Engineers</div>
-              <div className="text-sm text-white/60">& Developers Pvt. Ltd.</div>
+              <div className="text-sm text-white/60">and Developers Pvt. Ltd.</div>
             </div>
           </div>
           <h2 className="text-3xl font-bold text-white leading-tight max-w-sm">
@@ -119,10 +118,11 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-8 bg-background min-h-screen">
         <div className="w-full max-w-md space-y-8">
           <div className="lg:hidden flex items-center gap-3 mb-2">
-            <div className="bg-primary p-2 rounded-lg">
-              <Building2 className="h-6 w-6 text-white" />
+            <img src={logoImg} alt="Mahakali Engineers and Developers" className="h-10 w-auto object-contain" />
+            <div>
+              <div className="text-base font-bold leading-tight">Mahakali Engineers</div>
+              <div className="text-xs text-muted-foreground">and Developers Pvt. Ltd.</div>
             </div>
-            <span className="text-lg font-bold">Mahakali Engineers</span>
           </div>
 
           <div className="space-y-2">
