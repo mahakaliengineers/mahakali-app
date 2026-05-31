@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, useInView, useAnimation } from "framer-motion";
 import { 
   Building2, HardHat, ShieldCheck, Factory, ChevronRight, MapPin, Mail, Phone, 
@@ -71,55 +71,7 @@ const BIGHA_TO_SQM = 6772.63;
 const KATTHA_TO_SQM = BIGHA_TO_SQM / 20;
 const DHUR_TO_SQM = KATTHA_TO_SQM / 20;
 
-type LandSystem = "ropani" | "bigha";
 interface LandResult { label: string; value: string }
-
-function calcRopaniSystem(value: number, unit: string): LandResult[] {
-  let sqm = 0;
-  if (unit === "ropani") sqm = value * ROPANI_TO_SQM;
-  else if (unit === "aana") sqm = value * AANA_TO_SQM;
-  else if (unit === "paisa") sqm = value * PAISA_TO_SQM;
-  else if (unit === "daam") sqm = value * DAAM_TO_SQM;
-
-  const ropani = sqm / ROPANI_TO_SQM;
-  const aana = sqm / AANA_TO_SQM;
-  const paisa = sqm / PAISA_TO_SQM;
-  const daam = sqm / DAAM_TO_SQM;
-  const sqft = sqm * 10.7639;
-  const hectare = sqm / 10000;
-
-  return [
-    { label: "Square Meters (sq.m)", value: sqm.toFixed(4) },
-    { label: "Square Feet (sq.ft)", value: sqft.toFixed(4) },
-    { label: "Hectare (ha)", value: hectare.toFixed(6) },
-    { label: "Ropani", value: ropani.toFixed(4) },
-    { label: "Aana", value: aana.toFixed(4) },
-    { label: "Paisa", value: paisa.toFixed(4) },
-    { label: "Daam", value: daam.toFixed(4) },
-  ];
-}
-
-function calcBighaSystem(value: number, unit: string): LandResult[] {
-  let sqm = 0;
-  if (unit === "bigha") sqm = value * BIGHA_TO_SQM;
-  else if (unit === "kattha") sqm = value * KATTHA_TO_SQM;
-  else if (unit === "dhur") sqm = value * DHUR_TO_SQM;
-
-  const bigha = sqm / BIGHA_TO_SQM;
-  const kattha = sqm / KATTHA_TO_SQM;
-  const dhur = sqm / DHUR_TO_SQM;
-  const sqft = sqm * 10.7639;
-  const hectare = sqm / 10000;
-
-  return [
-    { label: "Square Meters (sq.m)", value: sqm.toFixed(4) },
-    { label: "Square Feet (sq.ft)", value: sqft.toFixed(4) },
-    { label: "Hectare (ha)", value: hectare.toFixed(6) },
-    { label: "Bigha", value: bigha.toFixed(4) },
-    { label: "Kattha", value: kattha.toFixed(4) },
-    { label: "Dhur", value: dhur.toFixed(4) },
-  ];
-}
 
 const LENGTH_UNITS: { label: string; toMeter: number }[] = [
   { label: "Meter (m)", toMeter: 1 },
@@ -211,19 +163,16 @@ function sqmToRapd(sqm: number) {
 
 function CalculatorTool() {
   const [tab, setTab] = useState<"land" | "length" | "cost" | "plot">("land");
-  const [landSystem, setLandSystem] = useState<LandSystem>("ropani");
-  const [landInput, setLandInput] = useState("");
-  const [landUnit, setLandUnit] = useState("ropani");
+  const [landSubTab, setLandSubTab] = useState<"sqm" | "sqft" | "rapd" | "bkd">("sqm");
+  const [landSqm, setLandSqm] = useState<number | null>(null);
+  const [landFields, setLandFields] = useState({ sqm: "", sqft: "", ropani: "", aana: "", paisa: "", dam: "", bigha: "", kattha: "", dhur: "" });
   const [landResults, setLandResults] = useState<LandResult[]>([]);
+  const activeLandField = useRef<string | null>(null);
 
   const [lengthValue, setLengthValue] = useState("");
   const [lengthFrom, setLengthFrom] = useState(0);
   const [lengthTo, setLengthTo] = useState(3);
   const [lengthResult, setLengthResult] = useState("");
-
-  const [areaValue, setAreaValue] = useState("");
-  const [areaUnit, setAreaUnit] = useState(0);
-  const [areaResults, setAreaResults] = useState<LandResult[]>([]);
 
   // Cost estimator state
   const [costArea, setCostArea] = useState("");
@@ -250,15 +199,63 @@ function CalculatorTool() {
     setCostResult({ total: sqft * perSqft, perSqft, sqft });
   }, [costArea, costAreaUnit, costFloors, costBuildingType, costGrade]);
 
-  const convertLand = useCallback(() => {
-    const v = parseFloat(landInput);
-    if (isNaN(v) || v < 0) { setLandResults([]); return; }
-    setLandResults(
-      landSystem === "ropani" ? calcRopaniSystem(v, landUnit) : calcBighaSystem(v, landUnit)
-    );
-  }, [landInput, landUnit, landSystem]);
+  const LAND_SQM_PER = { ropani: 508.72, aana: 508.72 / 16, paisa: 508.72 / 64, dam: 508.72 / 256, bigha: 6772.63, kattha: 6772.63 / 20, dhur: 6772.63 / 400 };
+  const RAPD_FIELDS = ["ropani", "aana", "paisa", "dam"];
+  const BKD_FIELDS  = ["bigha", "kattha", "dhur"];
 
-  useEffect(() => { convertLand(); }, [convertLand]);
+  const handleLandField = (field: string, val: string) => {
+    activeLandField.current = field;
+    setLandFields(prev => {
+      const next = { ...prev, [field]: val };
+      let sqm = 0;
+      if (field === "sqm") {
+        sqm = parseFloat(val) || 0;
+      } else if (field === "sqft") {
+        sqm = (parseFloat(val) || 0) / 10.7639;
+      } else if (RAPD_FIELDS.includes(field)) {
+        sqm = (parseFloat(next.ropani) || 0) * LAND_SQM_PER.ropani
+            + (parseFloat(next.aana)   || 0) * LAND_SQM_PER.aana
+            + (parseFloat(next.paisa)  || 0) * LAND_SQM_PER.paisa
+            + (parseFloat(next.dam)    || 0) * LAND_SQM_PER.dam;
+      } else {
+        sqm = (parseFloat(next.bigha)  || 0) * LAND_SQM_PER.bigha
+            + (parseFloat(next.kattha) || 0) * LAND_SQM_PER.kattha
+            + (parseFloat(next.dhur)   || 0) * LAND_SQM_PER.dhur;
+      }
+      setLandSqm(sqm > 0 ? sqm : null);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const fmt = (n: number, d = 4) => n.toFixed(d).replace(/\.?0+$/, "");
+    if (landSqm === null) { setLandResults([]); return; }
+    const sqm = landSqm;
+    const sqft = sqm * 10.7639;
+    const { ropani, aana, paisa, dam } = sqmToRapd(sqm);
+    const bigha  = Math.floor(sqm / LAND_SQM_PER.bigha);
+    const remAfterBigha = sqm - bigha * LAND_SQM_PER.bigha;
+    const kattha = Math.floor(remAfterBigha / LAND_SQM_PER.kattha);
+    const dhur   = Math.round((remAfterBigha - kattha * LAND_SQM_PER.kattha) / LAND_SQM_PER.dhur);
+    const active = activeLandField.current ?? "";
+    setLandFields(prev => {
+      const next = { ...prev };
+      if (active !== "sqm")  next.sqm  = fmt(sqm, 4);
+      if (active !== "sqft") next.sqft = fmt(sqft, 2);
+      if (!RAPD_FIELDS.includes(active)) {
+        next.ropani = String(ropani); next.aana = String(aana);
+        next.paisa  = String(paisa);  next.dam  = String(dam);
+      }
+      if (!BKD_FIELDS.includes(active)) {
+        next.bigha = String(bigha); next.kattha = String(kattha); next.dhur = String(dhur);
+      }
+      return next;
+    });
+    setLandResults([
+      { label: "Hectare (ha)", value: fmt(sqm / 10000, 6) },
+      { label: "Acre",         value: fmt(sqm / 4046.86, 6) },
+    ]);
+  }, [landSqm]);
 
   useEffect(() => {
     const factor = plotUnit === "ft" ? 0.3048 : 1;
@@ -285,29 +282,7 @@ function CalculatorTool() {
     setLengthResult(result.toFixed(6).replace(/\.?0+$/, ""));
   }, [lengthValue, lengthFrom, lengthTo]);
 
-  useEffect(() => {
-    const v = parseFloat(areaValue);
-    if (isNaN(v) || v < 0) { setAreaResults([]); return; }
-    const sqm = v * AREA_UNITS[areaUnit].toSqm;
-    setAreaResults(
-      AREA_UNITS.map(u => ({
-        label: u.label,
-        value: (sqm / u.toSqm).toFixed(6).replace(/\.?0+$/, ""),
-      }))
-    );
-  }, [areaValue, areaUnit]);
 
-  const ropaniUnits = [
-    { value: "ropani", label: "Ropani (रोपनी)" },
-    { value: "aana", label: "Aana (आना)" },
-    { value: "paisa", label: "Paisa (पैसा)" },
-    { value: "daam", label: "Daam (दाम)" },
-  ];
-  const bighaUnits = [
-    { value: "bigha", label: "Bigha (बिघा)" },
-    { value: "kattha", label: "Kattha (कट्ठा)" },
-    { value: "dhur", label: "Dhur (धुर)" },
-  ];
 
   const inputCls = "bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-primary focus:outline-none rounded px-4 py-3 w-full text-sm";
   const selectCls = "bg-white/5 border border-white/10 text-white focus:border-primary focus:outline-none rounded px-4 py-3 w-full text-sm appearance-none cursor-pointer";
@@ -338,107 +313,118 @@ function CalculatorTool() {
 
       {/* Land Tab */}
       {tab === "land" && (
-        <>
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <div className="flex gap-2 mb-2">
-              {(["ropani", "bigha"] as LandSystem[]).map(s => (
+          {/* Left — 4 sub-tabs */}
+          <div>
+            {/* Sub-tab buttons */}
+            <div className="flex gap-1 mb-5 bg-white/5 p-1 rounded-lg border border-white/10">
+              {([
+                { key: "sqm",  label: "1. sq.m" },
+                { key: "sqft", label: "2. sq.ft" },
+                { key: "rapd", label: "3. R-A-P-D" },
+                { key: "bkd",  label: "4. B-K-D" },
+              ] as const).map(s => (
                 <button
-                  key={s}
-                  onClick={() => { setLandSystem(s); setLandUnit(s === "ropani" ? "ropani" : "bigha"); setLandInput(""); }}
-                  className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded transition-colors ${
-                    landSystem === s ? "bg-accent text-white" : "bg-white/5 text-white/50 hover:bg-white/10 border border-white/10"
+                  key={s.key}
+                  onClick={() => setLandSubTab(s.key)}
+                  className={`flex-1 py-2 text-xs font-bold rounded transition-colors ${
+                    landSubTab === s.key
+                      ? "bg-primary text-white shadow"
+                      : "text-white/50 hover:text-white/80"
                   }`}
                 >
-                  {s === "ropani" ? "Hilly (Ropani)" : "Terai (Bigha)"}
+                  {s.label}
                 </button>
               ))}
             </div>
-            <div>
-              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Enter Value</label>
-              <input
-                type="number"
-                min="0"
-                placeholder="e.g. 2.5"
-                value={landInput}
-                onChange={e => setLandInput(e.target.value)}
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Unit</label>
-              <select
-                value={landUnit}
-                onChange={e => setLandUnit(e.target.value)}
-                className={selectCls}
-              >
-                {(landSystem === "ropani" ? ropaniUnits : bighaUnits).map(u => (
-                  <option key={u.value} value={u.value} className="bg-gray-900">{u.label}</option>
+
+            {/* Tab 1 — sq.m */}
+            {landSubTab === "sqm" && (
+              <div className="space-y-3">
+                <label className="text-xs text-white/40 uppercase tracking-wider block">Square Meter</label>
+                <input type="number" min="0" placeholder="e.g. 508.72" value={landFields.sqm} onChange={e => handleLandField("sqm", e.target.value)} className={inputCls} autoFocus />
+              </div>
+            )}
+
+            {/* Tab 2 — sq.ft */}
+            {landSubTab === "sqft" && (
+              <div className="space-y-3">
+                <label className="text-xs text-white/40 uppercase tracking-wider block">Square Feet</label>
+                <input type="number" min="0" placeholder="e.g. 5476" value={landFields.sqft} onChange={e => handleLandField("sqft", e.target.value)} className={inputCls} autoFocus />
+              </div>
+            )}
+
+            {/* Tab 3 — R-A-P-D */}
+            {landSubTab === "rapd" && (
+              <div className="space-y-3">
+                <p className="text-xs text-white/40 uppercase tracking-wider">Ropani System — values add together</p>
+                {[
+                  { key: "ropani", label: "Ropani (रोपनी)" },
+                  { key: "aana",   label: "Aana (आना)" },
+                  { key: "paisa",  label: "Paisa (पैसा)" },
+                  { key: "dam",    label: "Dam (दाम)" },
+                ].map((f, i) => (
+                  <div key={f.key}>
+                    <label className="text-xs text-white/40 mb-1 block">{f.label}</label>
+                    <input type="number" min="0" placeholder="0" value={landFields[f.key as keyof typeof landFields]} onChange={e => handleLandField(f.key, e.target.value)} className={inputCls} autoFocus={i === 0} />
+                  </div>
                 ))}
-              </select>
-            </div>
-            <div className="p-4 bg-white/5 border border-white/10 rounded text-xs text-white/40 leading-relaxed">
-              <strong className="text-white/60 block mb-1">Reference</strong>
-              {landSystem === "ropani"
-                ? "1 Ropani = 16 Aana = 64 Paisa = 256 Daam = 508.72 sq.m = 5,476 sq.ft"
-                : "1 Bigha = 20 Kattha = 400 Dhur = 6,772.63 sq.m = 72,900 sq.ft"}
+              </div>
+            )}
+
+            {/* Tab 4 — B-K-D */}
+            {landSubTab === "bkd" && (
+              <div className="space-y-3">
+                <p className="text-xs text-white/40 uppercase tracking-wider">Bigha System — values add together</p>
+                {[
+                  { key: "bigha",  label: "Bigha (बिघा)" },
+                  { key: "kattha", label: "Kattha (कट्ठा)" },
+                  { key: "dhur",   label: "Dhur (धुर)" },
+                ].map((f, i) => (
+                  <div key={f.key}>
+                    <label className="text-xs text-white/40 mb-1 block">{f.label}</label>
+                    <input type="number" min="0" placeholder="0" value={landFields[f.key as keyof typeof landFields]} onChange={e => handleLandField(f.key, e.target.value)} className={inputCls} autoFocus={i === 0} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded text-xs text-white/35 leading-relaxed">
+              <span className="text-primary/60">Hilly: </span>1 Ropani = 16 Aana = 64 Paisa = 256 Dam = 508.72 sq.m<br />
+              <span className="text-accent/60">Terai: </span>1 Bigha = 20 Kattha = 400 Dhur = 6,772.63 sq.m
             </div>
           </div>
+
+          {/* Right — all conversions */}
           <div>
-            <p className="text-xs text-white/50 uppercase tracking-wider mb-3">Conversion Results</p>
-            {landResults.length === 0 ? (
+            <p className="text-xs text-white/50 uppercase tracking-wider mb-3">All Conversions</p>
+            {!landSqm ? (
               <div className="flex items-center justify-center h-48 border border-white/10 rounded text-white/30 text-sm">
-                Enter a value to see conversions
+                Enter a value in any tab
               </div>
             ) : (
-              <div className="space-y-2">
-                {landResults.map((r, i) => (
-                  <div key={i} className={`flex justify-between items-center px-4 py-3 rounded border ${i < 3 ? "border-primary/30 bg-primary/5" : "border-white/10 bg-white/5"}`}>
-                    <span className="text-white/60 text-sm">{r.label}</span>
-                    <span className={`font-mono font-bold text-sm ${i < 3 ? "text-primary" : "text-white"}`}>{r.value}</span>
+              <div className="space-y-1">
+                {[
+                  { label: "Square Meter",   value: landFields.sqm,    hi: landSubTab === "sqm" },
+                  { label: "Square Feet",    value: landFields.sqft,   hi: landSubTab === "sqft" },
+                  { label: "Ropani",         value: landFields.ropani, hi: landSubTab === "rapd" },
+                  { label: "Aana",           value: landFields.aana,   hi: landSubTab === "rapd" },
+                  { label: "Paisa",          value: landFields.paisa,  hi: landSubTab === "rapd" },
+                  { label: "Dam",            value: landFields.dam,    hi: landSubTab === "rapd" },
+                  { label: "Bigha",          value: landFields.bigha,  hi: landSubTab === "bkd" },
+                  { label: "Kattha",         value: landFields.kattha, hi: landSubTab === "bkd" },
+                  { label: "Dhur",           value: landFields.dhur,   hi: landSubTab === "bkd" },
+                  ...landResults.map(r => ({ label: r.label, value: r.value, hi: false })),
+                ].map((r, i) => (
+                  <div key={i} className={`flex justify-between items-center px-3 py-2 rounded border text-sm ${r.hi ? "border-primary/30 bg-primary/5" : "border-white/10 bg-white/5"}`}>
+                    <span className={r.hi ? "text-white/70" : "text-white/50"}>{r.label}</span>
+                    <span className={`font-mono font-bold ${r.hi ? "text-primary" : "text-white/80"}`}>{r.value || "0"}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
         </div>
-
-        {/* Area Converter — merged into Land Units */}
-        <div className="mt-8 pt-8 border-t border-white/10">
-          <p className="text-xs text-white/50 uppercase tracking-wider mb-4">Area Unit Converter</p>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Enter Value</label>
-                <input type="number" min="0" placeholder="e.g. 2.5" value={areaValue} onChange={e => setAreaValue(e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Unit</label>
-                <select value={areaUnit} onChange={e => setAreaUnit(Number(e.target.value))} className={selectCls}>
-                  {AREA_UNITS.map((u, i) => <option key={i} value={i} className="bg-gray-900">{u.label}</option>)}
-                </select>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs text-white/50 uppercase tracking-wider mb-3">All Conversions</p>
-              {areaResults.length === 0 ? (
-                <div className="flex items-center justify-center h-48 border border-white/10 rounded text-white/30 text-sm">
-                  Enter a value to see all conversions
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {areaResults.map((r, i) => (
-                    <div key={i} className={`flex justify-between items-center px-4 py-3 rounded border ${i === areaUnit ? "border-primary/30 bg-primary/5" : "border-white/10 bg-white/5"}`}>
-                      <span className="text-white/60 text-sm">{r.label}</span>
-                      <span className={`font-mono font-bold text-sm ${i === areaUnit ? "text-primary" : "text-white"}`}>{r.value}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        </>
       )}
 
       {/* Length Tab */}
