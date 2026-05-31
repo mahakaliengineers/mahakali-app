@@ -49,6 +49,8 @@ export const GetMeResponse = zod.object({
 export const ListProjectsResponseItem = zod.object({
   "id": zod.number(),
   "clientId": zod.number(),
+  "clientName": zod.string().nullish(),
+  "clientEmail": zod.string().nullish(),
   "title": zod.string(),
   "location": zod.string().nullish(),
   "type": zod.string().nullish(),
@@ -289,6 +291,8 @@ export const UpdateProjectBody = zod.object({
 export const UpdateProjectResponse = zod.object({
   "id": zod.number(),
   "clientId": zod.number(),
+  "clientName": zod.string().nullish(),
+  "clientEmail": zod.string().nullish(),
   "title": zod.string(),
   "location": zod.string().nullish(),
   "type": zod.string().nullish(),
@@ -466,6 +470,36 @@ export const UpdatePaymentResponse = zod.object({
   "dueDate": zod.string().nullish(),
   "paidAt": zod.string().nullish(),
   "createdAt": zod.string()
+})
+
+
+/**
+ * @summary List all pending photos and documents (super admin only)
+ */
+export const ListPendingResponse = zod.object({
+  "photos": zod.array(zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "projectTitle": zod.string(),
+  "uploadedById": zod.number().nullish(),
+  "uploaderName": zod.string().nullish(),
+  "url": zod.string(),
+  "caption": zod.string().nullish(),
+  "status": zod.string(),
+  "uploadedAt": zod.string()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "projectTitle": zod.string(),
+  "uploadedById": zod.number().nullish(),
+  "uploaderName": zod.string().nullish(),
+  "name": zod.string(),
+  "url": zod.string(),
+  "type": zod.string(),
+  "status": zod.string(),
+  "uploadedAt": zod.string()
+}))
 })
 
 

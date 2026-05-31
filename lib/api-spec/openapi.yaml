@@ -574,6 +574,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/Payment"
 
+  /admin/pending:
+    get:
+      operationId: listPending
+      tags: [admin]
+      summary: List all pending photos and documents (super admin only)
+      responses:
+        "200":
+          description: Pending items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PendingItems"
+
   /admin/users:
     get:
       operationId: listUsers
@@ -725,6 +738,67 @@ components:
         clientNumber:
           type: string
 
+    PendingPhoto:
+      type: object
+      required: [id, projectId, projectTitle, url, status, uploadedAt]
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        projectTitle:
+          type: string
+        uploadedById:
+          type: ["integer", "null"]
+        uploaderName:
+          type: ["string", "null"]
+        url:
+          type: string
+        caption:
+          type: ["string", "null"]
+        status:
+          type: string
+        uploadedAt:
+          type: string
+
+    PendingDocument:
+      type: object
+      required: [id, projectId, projectTitle, name, url, type, status, uploadedAt]
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        projectTitle:
+          type: string
+        uploadedById:
+          type: ["integer", "null"]
+        uploaderName:
+          type: ["string", "null"]
+        name:
+          type: string
+        url:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        uploadedAt:
+          type: string
+
+    PendingItems:
+      type: object
+      required: [photos, documents]
+      properties:
+        photos:
+          type: array
+          items:
+            $ref: "#/components/schemas/PendingPhoto"
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/PendingDocument"
+
     StaffInput:
       type: object
       required: [name, email, password]
@@ -755,6 +829,10 @@ components:
           type: integer
         clientId:
           type: integer
+        clientName:
+          type: ["string", "null"]
+        clientEmail:
+          type: ["string", "null"]
         title:
           type: string
         location:

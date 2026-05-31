@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import {
-  photosTable, documentsTable, updatesTable, paymentsTable, milestonesTable, usersTable
+  photosTable, documentsTable, updatesTable, paymentsTable, milestonesTable, usersTable, projectsTable
 } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {
   AddPhotoBody, AddDocumentBody, AddUpdateBody,
   AddMilestoneBody, UpdateMilestoneBody,
@@ -161,6 +161,45 @@ router.patch("/admin/payments/:id", requireAdmin, async (req, res) => {
   const [payment] = await db.update(paymentsTable).set(updates).where(eq(paymentsTable.id, id)).returning();
   if (!payment) { res.status(404).json({ error: "Not found" }); return; }
   res.json(payment);
+});
+
+router.get("/admin/pending", requireSuperAdmin, async (_req, res) => {
+  const pendingPhotos = await db
+    .select({
+      id: photosTable.id,
+      projectId: photosTable.projectId,
+      projectTitle: projectsTable.title,
+      uploadedById: photosTable.uploadedById,
+      uploaderName: usersTable.name,
+      url: photosTable.url,
+      caption: photosTable.caption,
+      status: photosTable.status,
+      uploadedAt: photosTable.uploadedAt,
+    })
+    .from(photosTable)
+    .innerJoin(projectsTable, eq(photosTable.projectId, projectsTable.id))
+    .leftJoin(usersTable, eq(photosTable.uploadedById, usersTable.id))
+    .where(eq(photosTable.status, "pending"));
+
+  const pendingDocs = await db
+    .select({
+      id: documentsTable.id,
+      projectId: documentsTable.projectId,
+      projectTitle: projectsTable.title,
+      uploadedById: documentsTable.uploadedById,
+      uploaderName: usersTable.name,
+      name: documentsTable.name,
+      url: documentsTable.url,
+      type: documentsTable.type,
+      status: documentsTable.status,
+      uploadedAt: documentsTable.uploadedAt,
+    })
+    .from(documentsTable)
+    .innerJoin(projectsTable, eq(documentsTable.projectId, projectsTable.id))
+    .leftJoin(usersTable, eq(documentsTable.uploadedById, usersTable.id))
+    .where(eq(documentsTable.status, "pending"));
+
+  res.json({ photos: pendingPhotos, documents: pendingDocs });
 });
 
 export default router;

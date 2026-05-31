@@ -9,6 +9,10 @@
 export interface Project {
   id: number;
   clientId: number;
+  /** @nullable */
+  clientName?: string | null;
+  /** @nullable */
+  clientEmail?: string | null;
   title: string;
   /** @nullable */
   location?: string | null;

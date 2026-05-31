@@ -18,11 +18,37 @@ router.get("/portal/projects", requireAuth, async (req, res) => {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
 
-  const projects = user.role === "admin"
-    ? await db.select().from(projectsTable).orderBy(projectsTable.createdAt)
-    : await db.select().from(projectsTable).where(eq(projectsTable.clientId, userId)).orderBy(projectsTable.createdAt);
+  const isStaff = user.role === "admin" || user.role === "super_admin";
 
-  res.json(projects);
+  if (isStaff) {
+    const rows = await db
+      .select({
+        id: projectsTable.id,
+        clientId: projectsTable.clientId,
+        clientName: usersTable.name,
+        clientEmail: usersTable.email,
+        title: projectsTable.title,
+        location: projectsTable.location,
+        type: projectsTable.type,
+        status: projectsTable.status,
+        progress: projectsTable.progress,
+        description: projectsTable.description,
+        startDate: projectsTable.startDate,
+        endDate: projectsTable.endDate,
+        createdAt: projectsTable.createdAt,
+      })
+      .from(projectsTable)
+      .leftJoin(usersTable, eq(projectsTable.clientId, usersTable.id))
+      .orderBy(projectsTable.createdAt);
+    res.json(rows);
+  } else {
+    const projects = await db
+      .select()
+      .from(projectsTable)
+      .where(eq(projectsTable.clientId, userId))
+      .orderBy(projectsTable.createdAt);
+    res.json(projects);
+  }
 });
 
 router.get("/portal/projects/:id", requireAuth, async (req, res) => {

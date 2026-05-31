@@ -49,6 +49,41 @@ export interface ClientInput {
   clientNumber?: string;
 }
 
+export interface PendingPhoto {
+  id: number;
+  projectId: number;
+  projectTitle: string;
+  /** @nullable */
+  uploadedById?: number | null;
+  /** @nullable */
+  uploaderName?: string | null;
+  url: string;
+  /** @nullable */
+  caption?: string | null;
+  status: string;
+  uploadedAt: string;
+}
+
+export interface PendingDocument {
+  id: number;
+  projectId: number;
+  projectTitle: string;
+  /** @nullable */
+  uploadedById?: number | null;
+  /** @nullable */
+  uploaderName?: string | null;
+  name: string;
+  url: string;
+  type: string;
+  status: string;
+  uploadedAt: string;
+}
+
+export interface PendingItems {
+  photos: PendingPhoto[];
+  documents: PendingDocument[];
+}
+
 export type StaffInputRole = typeof StaffInputRole[keyof typeof StaffInputRole];
 
 
@@ -80,6 +115,10 @@ export interface UserRoleUpdate {
 export interface Project {
   id: number;
   clientId: number;
+  /** @nullable */
+  clientName?: string | null;
+  /** @nullable */
+  clientEmail?: string | null;
   title: string;
   /** @nullable */
   location?: string | null;

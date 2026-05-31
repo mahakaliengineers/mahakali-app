@@ -35,6 +35,7 @@ import type {
   Payment,
   PaymentInput,
   PaymentUpdate,
+  PendingItems,
   Photo,
   PhotoInput,
   Project,
@@ -2118,6 +2119,83 @@ export const useUpdatePayment = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getUpdatePaymentMutationOptions(options));
     }
+
+export const getListPendingUrl = () => {
+
+
+
+
+  return `/api/admin/pending`
+}
+
+/**
+ * @summary List all pending photos and documents (super admin only)
+ */
+export const listPending = async ( options?: RequestInit): Promise<PendingItems> => {
+
+  return customFetch<PendingItems>(getListPendingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPendingQueryKey = () => {
+    return [
+    `/api/admin/pending`
+    ] as const;
+    }
+
+
+export const getListPendingQueryOptions = <TData = Awaited<ReturnType<typeof listPending>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPending>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPendingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPending>>> = ({ signal }) => listPending({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPending>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPendingQueryResult = NonNullable<Awaited<ReturnType<typeof listPending>>>
+export type ListPendingQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all pending photos and documents (super admin only)
+ */
+
+export function useListPending<TData = Awaited<ReturnType<typeof listPending>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPending>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPendingQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getListUsersUrl = () => {
 
