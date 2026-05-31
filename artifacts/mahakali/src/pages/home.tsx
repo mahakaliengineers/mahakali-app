@@ -107,12 +107,10 @@ const COST_RATES: Record<string, Record<string, number>> = {
 };
 
 const COST_BREAKDOWN = [
-  { label: "Civil / Structure",      pct: 0.40, color: "bg-primary" },
-  { label: "Finishing & Interior",   pct: 0.22, color: "bg-accent" },
-  { label: "Electrical Works",       pct: 0.10, color: "bg-yellow-500" },
-  { label: "Plumbing & Sanitary",    pct: 0.08, color: "bg-green-500" },
-  { label: "Doors & Windows",        pct: 0.08, color: "bg-purple-500" },
-  { label: "Misc / Contingency",     pct: 0.12, color: "bg-orange-500" },
+  { label: "Foundation & Civil Structure", desc: "Grey structure — excavation to roof slab",        pct: 0.40, color: "bg-primary" },
+  { label: "Finishing & Interior",         desc: "Plaster, tiles, paint, woodwork, doors & windows", pct: 0.35, color: "bg-accent" },
+  { label: "Utilities & Systems",          desc: "Electrical wiring + plumbing & sanitary",          pct: 0.15, color: "bg-yellow-500" },
+  { label: "Misc & Contingency",           desc: "Permits, site management, unforeseen",             pct: 0.10, color: "bg-orange-500" },
 ];
 
 const AREA_INPUT_UNITS: { label: string; toSqft: number }[] = [
@@ -639,11 +637,14 @@ function CalculatorTool() {
                     const barW = Math.round(item.pct * 100);
                     return (
                       <div key={i} className="px-4 py-3 border-b border-white/5 last:border-0">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-sm text-white/70">{item.label}</span>
-                          <span className="text-sm font-mono font-bold text-white">{fmtNPR(amt)}</span>
+                        <div className="flex justify-between items-start mb-1 gap-2">
+                          <div>
+                            <span className="text-sm text-white/80 font-medium">{item.label}</span>
+                            <p className="text-xs text-white/35 mt-0.5">{item.desc}</p>
+                          </div>
+                          <span className="text-sm font-mono font-bold text-white shrink-0">{fmtNPR(amt)}</span>
                         </div>
-                        <div className="h-1 bg-white/10 rounded overflow-hidden">
+                        <div className="h-1 bg-white/10 rounded overflow-hidden mt-2">
                           <div className={`h-full ${item.color} rounded`} style={{ width: `${barW}%` }} />
                         </div>
                       </div>
