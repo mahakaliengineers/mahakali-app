@@ -101,7 +101,7 @@ const AREA_UNITS: { label: string; toSqm: number }[] = [
 // ─── Cost Estimator Data ─────────────────────────────────────────────────────
 
 const COST_RATES: Record<string, Record<string, number>> = {
-  residential: { basic: 1800, standard: 2600, premium: 3800, luxury: 6000 },
+  residential: { basic: 2900, standard: 3500, premium: 4500, luxury: 6000 },
   commercial:  { basic: 2400, standard: 3400, premium: 5000, luxury: 7500 },
   industrial:  { basic: 1500, standard: 2100, premium: 3000, luxury: 4000 },
 };
