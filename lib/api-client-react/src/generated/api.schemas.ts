@@ -49,6 +49,21 @@ export interface ClientInput {
   clientNumber?: string;
 }
 
+export type StaffInputRole = typeof StaffInputRole[keyof typeof StaffInputRole];
+
+
+export const StaffInputRole = {
+  admin: 'admin',
+  super_admin: 'super_admin',
+} as const;
+
+export interface StaffInput {
+  name: string;
+  email: string;
+  password: string;
+  role?: StaffInputRole;
+}
+
 export type UserRoleUpdateRole = typeof UserRoleUpdateRole[keyof typeof UserRoleUpdateRole];
 
 

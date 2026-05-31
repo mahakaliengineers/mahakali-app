@@ -7,6 +7,7 @@ import {
   LayoutDashboard, 
   Users, 
   FolderKanban,
+  ShieldCheck,
   LogOut,
   Loader2
 } from "lucide-react";
@@ -45,6 +46,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const isStaff = user.role === "admin" || user.role === "super_admin";
+  const isSuperAdmin = user.role === "super_admin";
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -53,6 +55,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           { href: "/admin/projects", label: "All Projects", icon: FolderKanban },
           { href: "/admin/clients", label: "Clients", icon: Users },
         ]
+      : []),
+    ...(isSuperAdmin
+      ? [{ href: "/admin/staff", label: "Staff", icon: ShieldCheck }]
       : []),
   ];
 

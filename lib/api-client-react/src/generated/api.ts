@@ -41,6 +41,7 @@ import type {
   ProjectDetail,
   ProjectInput,
   ProjectUpdate,
+  StaffInput,
   Update,
   UpdateInput,
   UploadUrlInput,
@@ -2116,6 +2117,154 @@ export const useUpdatePayment = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdatePaymentMutationOptions(options));
+    }
+
+export const getListUsersUrl = () => {
+
+
+
+
+  return `/api/admin/users`
+}
+
+/**
+ * @summary List all staff users (super admin only)
+ */
+export const listUsers = async ( options?: RequestInit): Promise<ClientUser[]> => {
+
+  return customFetch<ClientUser[]>(getListUsersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListUsersQueryKey = () => {
+    return [
+    `/api/admin/users`
+    ] as const;
+    }
+
+
+export const getListUsersQueryOptions = <TData = Awaited<ReturnType<typeof listUsers>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListUsersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listUsers>>> = ({ signal }) => listUsers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listUsers>>>
+export type ListUsersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all staff users (super admin only)
+ */
+
+export function useListUsers<TData = Awaited<ReturnType<typeof listUsers>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListUsersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateStaffUrl = () => {
+
+
+
+
+  return `/api/admin/users`
+}
+
+/**
+ * @summary Create a new staff (admin/super_admin) account
+ */
+export const createStaff = async (staffInput: StaffInput, options?: RequestInit): Promise<ClientUser> => {
+
+  return customFetch<ClientUser>(getCreateStaffUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      staffInput,)
+  }
+);}
+
+
+
+
+export const getCreateStaffMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStaff>>, TError,{data: BodyType<StaffInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createStaff>>, TError,{data: BodyType<StaffInput>}, TContext> => {
+
+const mutationKey = ['createStaff'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createStaff>>, {data: BodyType<StaffInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createStaff(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateStaffMutationResult = NonNullable<Awaited<ReturnType<typeof createStaff>>>
+    export type CreateStaffMutationBody = BodyType<StaffInput>
+    export type CreateStaffMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a new staff (admin/super_admin) account
+ */
+export const useCreateStaff = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStaff>>, TError,{data: BodyType<StaffInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createStaff>>,
+        TError,
+        {data: BodyType<StaffInput>},
+        TContext
+      > => {
+      return useMutation(getCreateStaffMutationOptions(options));
     }
 
 export const getUpdateUserRoleUrl = (id: number,) => {

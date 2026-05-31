@@ -12,6 +12,7 @@ import AdminProjects from "@/pages/admin/projects";
 import AdminClients from "@/pages/admin/clients";
 import AdminNewProject from "@/pages/admin/new-project";
 import AdminManageProject from "@/pages/admin/manage-project";
+import AdminStaff from "@/pages/admin/staff";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/admin/clients" component={AdminClients} />
       <Route path="/admin/projects/new" component={AdminNewProject} />
       <Route path="/admin/projects/:id/manage" component={AdminManageProject} />
+      <Route path="/admin/staff" component={AdminStaff} />
       <Route component={NotFound} />
     </Switch>
   );

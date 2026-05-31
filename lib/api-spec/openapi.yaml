@@ -574,6 +574,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/Payment"
 
+  /admin/users:
+    get:
+      operationId: listUsers
+      tags: [admin]
+      summary: List all staff users (super admin only)
+      responses:
+        "200":
+          description: Staff users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClientUser"
+    post:
+      operationId: createStaff
+      tags: [admin]
+      summary: Create a new staff (admin/super_admin) account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StaffInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientUser"
+
   /admin/users/{id}/role:
     patch:
       operationId: updateUserRole
@@ -692,6 +724,20 @@ components:
           type: string
         clientNumber:
           type: string
+
+    StaffInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, super_admin]
 
     UserRoleUpdate:
       type: object

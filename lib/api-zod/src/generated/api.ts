@@ -470,6 +470,35 @@ export const UpdatePaymentResponse = zod.object({
 
 
 /**
+ * @summary List all staff users (super admin only)
+ */
+export const ListUsersResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "siteLocation": zod.string().nullish(),
+  "fiscalYear": zod.string().nullish(),
+  "clientNumber": zod.string().nullish(),
+  "clientCode": zod.string().nullish(),
+  "role": zod.string(),
+  "createdAt": zod.string()
+})
+export const ListUsersResponse = zod.array(ListUsersResponseItem)
+
+
+/**
+ * @summary Create a new staff (admin/super_admin) account
+ */
+export const CreateStaffBody = zod.object({
+  "name": zod.string(),
+  "email": zod.string(),
+  "password": zod.string(),
+  "role": zod.enum(['admin', 'super_admin']).optional()
+})
+
+
+/**
  * @summary Update a user role (super admin only)
  */
 export const UpdateUserRoleParams = zod.object({

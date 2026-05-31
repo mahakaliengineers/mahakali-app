@@ -27,6 +27,8 @@ export * from './project';
 export * from './projectDetail';
 export * from './projectInput';
 export * from './projectUpdate';
+export * from './staffInput';
+export * from './staffInputRole';
 export * from './update';
 export * from './updateInput';
 export * from './uploadUrlInput';

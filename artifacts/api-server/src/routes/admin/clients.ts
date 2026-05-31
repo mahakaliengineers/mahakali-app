@@ -10,7 +10,9 @@ const router = Router();
 function requireAdmin(req: any, res: any, next: any) {
   if (!req.session?.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
   db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1).then(([user]) => {
-    if (!user || user.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
+    if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+      res.status(403).json({ error: "Forbidden" }); return;
+    }
     req.adminUser = user;
     next();
   }).catch(next);
