@@ -136,6 +136,9 @@ function fmtNPR(n: number) {
 interface PlotResult {
   sqm: number;
   sqft: number;
+  bigha: number;
+  kattha: number;
+  dhur: number;
   ropani: number;
   aana: number;
   paisa: number;
@@ -274,7 +277,11 @@ function CalculatorTool() {
     const sqm = area1 + area2;
     const sqft = sqm * 10.7639;
     const { ropani, aana, paisa, dam } = sqmToRapd(sqm);
-    setPlotResult({ sqm, sqft, ropani, aana, paisa, dam });
+    const bigha  = Math.floor(sqm / LAND_SQM_PER.bigha);
+    const remB   = sqm - bigha * LAND_SQM_PER.bigha;
+    const kattha = Math.floor(remB / LAND_SQM_PER.kattha);
+    const dhur   = Math.round((remB - kattha * LAND_SQM_PER.kattha) / LAND_SQM_PER.dhur);
+    setPlotResult({ sqm, sqft, ropani, aana, paisa, dam, bigha, kattha, dhur });
   }, [plotA, plotB, plotC, plotD, plotDiag, plotUnit]);
 
   useEffect(() => {
@@ -769,8 +776,29 @@ function CalculatorTool() {
                   </div>
                 </div>
 
+                {/* Tarai / Bigha breakdown */}
+                <div className="border border-white/10 rounded overflow-hidden">
+                  <p className="text-xs text-white/50 uppercase tracking-wider px-4 py-3 border-b border-white/10 bg-white/5">
+                    Bigha System (Tarai Nepal — बिघा)
+                  </p>
+                  <div className="grid grid-cols-3 divide-x divide-white/10">
+                    {[
+                      { label: "Bigha",  nepali: "बिघा",  value: plotResult.bigha },
+                      { label: "Kattha", nepali: "कट्ठा", value: plotResult.kattha },
+                      { label: "Dhur",   nepali: "धुर",   value: plotResult.dhur },
+                    ].map((item, i) => (
+                      <div key={i} className="p-4 text-center">
+                        <p className="text-2xl font-mono font-black text-white">{item.value}</p>
+                        <p className="text-xs text-white/60 font-semibold mt-0.5">{item.label}</p>
+                        <p className="text-xs text-white/30">{item.nepali}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="p-3 bg-white/5 border border-white/10 rounded text-xs text-white/40 leading-relaxed">
-                  1 Ropani = 16 Aana = 64 Paisa = 256 Dam = 508.72 sq.m · Calculated using Heron's formula
+                  <span className="text-primary/60">Hilly: </span>1 Ropani = 16 Aana = 64 Paisa = 256 Dam = 508.72 sq.m<br />
+                  <span className="text-amber-400/60">Tarai: </span>1 Bigha = 20 Kattha = 400 Dhur = 6,772.63 sq.m · Calculated using Heron's formula
                 </div>
               </>
             )}
