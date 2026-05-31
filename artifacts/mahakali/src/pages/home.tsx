@@ -584,7 +584,7 @@ function CalculatorTool() {
               <div className="p-3 bg-white/5 border border-white/10 rounded text-xs text-white/40">
                 Current rate: <span className="text-white/70 font-bold">
                   Rs. {COST_RATES[costBuildingType][costGrade].toLocaleString("en-IN")} / sq.ft
-                </span> · Rates are indicative estimates for Kathmandu Valley (2025)
+                </span> · Rates are indicative estimates of Mahakali Engineers and Developers Pvt. Ltd. For an accurate estimate please contact Mahakali Engineers and Developers Pvt. Ltd.
               </div>
             </div>
 
@@ -655,7 +655,7 @@ function CalculatorTool() {
 
               {costResult && (
                 <div className="p-3 bg-white/5 border border-white/10 rounded text-xs text-white/40 leading-relaxed">
-                  ⚠ This is a rough estimate only. Actual costs vary based on site conditions, material prices, design complexity, and labour rates. Contact Mahakali Engineers for a detailed quote.
+                  ⚠ This is a rough estimate only. Actual costs vary based on site conditions, material prices, design complexity, and labour rates. Contact Mahakali Engineers and Developers Pvt. Ltd. for a detailed quote.
                 </div>
               )}
             </div>
