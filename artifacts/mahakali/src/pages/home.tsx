@@ -527,23 +527,33 @@ function CalculatorTool() {
               {/* Plot Area */}
               <div>
                 <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Total Plot Area (per floor)</label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={costArea}
-                    onChange={e => setCostArea(e.target.value)}
-                    className={inputCls + " flex-1"}
-                  />
-                  <select
-                    value={costAreaUnit}
-                    onChange={e => setCostAreaUnit(Number(e.target.value))}
-                    className={selectCls + " w-40"}
-                  >
-                    <option value={0} className="bg-gray-900">sq.ft</option>
-                    <option value={1} className="bg-gray-900">sq.m</option>
-                  </select>
+                <div className="flex flex-col gap-2">
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={costArea}
+                      onChange={e => setCostArea(e.target.value)}
+                      className={inputCls + " pr-16"}
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 text-sm font-medium pointer-events-none select-none">
+                      {costAreaUnit === 0 ? "sq.ft" : "sq.m"}
+                    </span>
+                  </div>
+                  <div className="flex gap-1">
+                    {[{ label: "sq.ft", val: 0 }, { label: "sq.m", val: 1 }].map(u => (
+                      <button
+                        key={u.val}
+                        onClick={() => setCostAreaUnit(u.val)}
+                        className={`px-3 py-1 rounded text-xs font-semibold border transition-colors ${
+                          costAreaUnit === u.val
+                            ? "bg-primary border-primary text-white"
+                            : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
+                        }`}
+                      >{u.label}</button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
