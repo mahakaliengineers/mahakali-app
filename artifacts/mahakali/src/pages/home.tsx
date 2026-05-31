@@ -108,9 +108,9 @@ const COST_RATES: Record<string, Record<string, number>> = {
 
 const COST_BREAKDOWN = [
   { label: "Foundation & Civil Structure", desc: "Grey structure — excavation to roof slab",        pct: 0.40, color: "bg-primary" },
-  { label: "Finishing & Interior",         desc: "Plaster, tiles, paint, woodwork, doors & windows", pct: 0.35, color: "bg-accent" },
-  { label: "Utilities & Systems",          desc: "Electrical wiring + plumbing & sanitary",          pct: 0.15, color: "bg-yellow-500" },
-  { label: "Misc & Contingency",           desc: "Permits, site management, unforeseen",             pct: 0.10, color: "bg-orange-500" },
+  { label: "Finishing & Interior",         desc: "Wall, plaster, woodwork, paint, tiles & marbles",  pct: 0.35, color: "bg-accent" },
+  { label: "Utilities & Systems",          desc: "Electrical wiring + plumbing & sanitary",           pct: 0.15, color: "bg-yellow-500" },
+  { label: "Misc & Contingency",           desc: "Design & drawing, site management, unforeseen",     pct: 0.10, color: "bg-orange-500" },
 ];
 
 const AREA_INPUT_UNITS: { label: string; toSqft: number }[] = [
