@@ -303,10 +303,10 @@ function CalculatorTool() {
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 mb-8">
         {[
-          { key: "land", label: "🏔 Land Units (Nepal)" },
+          { key: "cost",   label: "🏗 Cost Estimation" },
+          { key: "plot",   label: "📐 Plot Area" },
+          { key: "land",   label: "🏔 Land Units (Nepal)" },
           { key: "length", label: "📏 Length" },
-          { key: "cost", label: "🏗 Cost Estimator" },
-          { key: "plot", label: "📐 Plot Area" },
         ].map(t => (
           <button
             key={t.key}
@@ -1556,12 +1556,12 @@ export default function Home() {
       <section id="calculator" className="py-24 md:py-32 bg-secondary text-white">
         <div className="container mx-auto px-6">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={STAGGER} className="text-center mb-14">
-            <motion.p variants={FADE_UP} className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-3">Free Tool</motion.p>
+            <motion.p variants={FADE_UP} className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-3">Calculator Tools</motion.p>
             <motion.h2 variants={FADE_UP} className="text-3xl md:text-5xl font-display font-bold text-white mb-4">
-              Nepal Land & Measurement Calculator
+              Construction Cost Estimator
             </motion.h2>
-            <motion.p variants={FADE_UP} className="text-white/60 max-w-xl mx-auto text-sm">
-              Convert between traditional Nepali land units (Ropani, Aana, Paisa, Daam) and international measurements instantly.
+            <motion.p variants={FADE_UP} className="text-white/60 max-w-2xl mx-auto text-sm">
+              Estimate your construction cost, calculate plot area using Heron's formula, convert between traditional Nepali land units (Ropani, Aana, Bigha, Kattha) and international measurements, and convert lengths — all in one place.
             </motion.p>
           </motion.div>
 
