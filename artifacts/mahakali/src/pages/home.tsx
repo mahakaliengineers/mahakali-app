@@ -527,19 +527,19 @@ function CalculatorTool() {
               {/* Plot Area */}
               <div>
                 <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Total Plot Area (per floor)</label>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <input
                     type="number"
                     min="0"
                     placeholder="0"
                     value={costArea}
                     onChange={e => setCostArea(e.target.value)}
-                    className="flex-1 bg-white/8 border-2 border-white/20 hover:border-white/30 focus:border-primary focus:outline-none rounded-lg px-5 py-4 text-white text-2xl font-semibold placeholder:text-white/20 transition-colors"
+                    className={inputCls + " flex-1"}
                   />
                   <select
                     value={costAreaUnit}
                     onChange={e => setCostAreaUnit(Number(e.target.value))}
-                    className="bg-white/8 border-2 border-white/20 hover:border-white/30 focus:border-primary focus:outline-none rounded-lg px-4 py-4 text-white text-base font-medium appearance-none cursor-pointer transition-colors w-48"
+                    className={selectCls + " w-40"}
                   >
                     <option value={0} className="bg-gray-900">sq.ft</option>
                     <option value={1} className="bg-gray-900">sq.m</option>
