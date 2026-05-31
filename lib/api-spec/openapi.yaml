@@ -543,6 +543,8 @@ components:
           type: ["string", "null"]
         fiscalYear:
           type: ["string", "null"]
+        clientNumber:
+          type: ["string", "null"]
         clientCode:
           type: ["string", "null"]
         role:
@@ -565,6 +567,8 @@ components:
         siteLocation:
           type: string
         fiscalYear:
+          type: string
+        clientNumber:
           type: string
 
     Project:

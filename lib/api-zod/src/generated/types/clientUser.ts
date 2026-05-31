@@ -17,6 +17,8 @@ export interface ClientUser {
   /** @nullable */
   fiscalYear?: string | null;
   /** @nullable */
+  clientNumber?: string | null;
+  /** @nullable */
   clientCode?: string | null;
   role: string;
   createdAt: string;

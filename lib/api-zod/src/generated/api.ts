@@ -88,6 +88,7 @@ export const GetProjectResponse = zod.object({
   "phone": zod.string().nullish(),
   "siteLocation": zod.string().nullish(),
   "fiscalYear": zod.string().nullish(),
+  "clientNumber": zod.string().nullish(),
   "clientCode": zod.string().nullish(),
   "role": zod.string(),
   "createdAt": zod.string()
@@ -195,6 +196,7 @@ export const ListClientsResponseItem = zod.object({
   "phone": zod.string().nullish(),
   "siteLocation": zod.string().nullish(),
   "fiscalYear": zod.string().nullish(),
+  "clientNumber": zod.string().nullish(),
   "clientCode": zod.string().nullish(),
   "role": zod.string(),
   "createdAt": zod.string()
@@ -211,7 +213,8 @@ export const CreateClientBody = zod.object({
   "password": zod.string(),
   "phone": zod.string().optional(),
   "siteLocation": zod.string().optional(),
-  "fiscalYear": zod.string().optional()
+  "fiscalYear": zod.string().optional(),
+  "clientNumber": zod.string().optional()
 })
 
 

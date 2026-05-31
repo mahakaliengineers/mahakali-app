@@ -35,6 +35,7 @@ const clientSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   siteLocation: z.string().optional(),
   fiscalYear: z.string().optional(),
+  clientNumber: z.string().optional(),
   // Project details
   projectTitle: z.string().min(2, "Project title is required"),
   projectType: z.string().optional(),
@@ -55,7 +56,7 @@ export default function AdminClients() {
     resolver: zodResolver(clientSchema),
     defaultValues: {
       name: "", email: "", phone: "", password: "",
-      siteLocation: "", fiscalYear: "",
+      siteLocation: "", fiscalYear: "", clientNumber: "",
       projectTitle: "", projectType: "", projectDescription: "", projectStartDate: "",
     },
   });
@@ -74,6 +75,7 @@ export default function AdminClients() {
               phone: values.phone,
               siteLocation: values.siteLocation,
               fiscalYear: values.fiscalYear,
+              clientNumber: values.clientNumber,
             } as any,
           },
           { onSuccess: resolve, onError: reject }
@@ -167,7 +169,14 @@ export default function AdminClients() {
                           </FormItem>
                         )} />
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-3 gap-3">
+                        <FormField control={form.control} name="clientNumber" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Client No.</FormLabel>
+                            <FormControl><Input placeholder="345" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
                         <FormField control={form.control} name="fiscalYear" render={({ field }) => (
                           <FormItem>
                             <FormLabel>Fiscal Year</FormLabel>
@@ -183,6 +192,16 @@ export default function AdminClients() {
                           </FormItem>
                         )} />
                       </div>
+                      {/* Live Client ID preview */}
+                      {(form.watch("clientNumber") || form.watch("fiscalYear")) && (
+                        <div className="flex items-center gap-2 px-3 py-2 rounded bg-muted text-sm">
+                          <span className="text-muted-foreground">Client ID preview:</span>
+                          <span className="font-mono font-bold text-primary tracking-widest">
+                            {String(form.watch("clientNumber") || "?").padStart(5, "0")}
+                            {form.watch("fiscalYear") ? `-${form.watch("fiscalYear").replace("/", "")}` : ""}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 

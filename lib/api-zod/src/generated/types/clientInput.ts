@@ -13,4 +13,5 @@ export interface ClientInput {
   phone?: string;
   siteLocation?: string;
   fiscalYear?: string;
+  clientNumber?: string;
 }

@@ -16,10 +16,10 @@ function requireAdmin(req: any, res: any, next: any) {
   }).catch(next);
 }
 
-function formatClientCode(id: number, fiscalYear: string | null | undefined): string {
-  const paddedId = String(id).padStart(5, "0");
+function formatClientCode(num: string | number, fiscalYear: string | null | undefined): string {
+  const paddedNum = String(num).padStart(5, "0");
   const fy = (fiscalYear ?? "").replace("/", "");
-  return fy ? `${paddedId}-${fy}` : paddedId;
+  return fy ? `${paddedNum}-${fy}` : paddedNum;
 }
 
 router.get("/admin/clients", requireAdmin, async (req, res) => {
@@ -30,6 +30,7 @@ router.get("/admin/clients", requireAdmin, async (req, res) => {
     phone: usersTable.phone,
     siteLocation: usersTable.siteLocation,
     fiscalYear: usersTable.fiscalYear,
+    clientNumber: usersTable.clientNumber,
     clientCode: usersTable.clientCode,
     role: usersTable.role,
     createdAt: usersTable.createdAt,
@@ -40,21 +41,23 @@ router.get("/admin/clients", requireAdmin, async (req, res) => {
 router.post("/admin/clients", requireAdmin, async (req, res) => {
   const parsed = CreateClientBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid request body" }); return; }
-  const { name, email, password, phone, siteLocation, fiscalYear } = parsed.data as any;
+  const { name, email, password, phone, siteLocation, fiscalYear, clientNumber } = parsed.data as any;
   const passwordHash = await bcrypt.hash(password, 10);
   const [user] = await db.insert(usersTable).values({
     name, email, passwordHash, role: "client",
     phone: phone ?? null,
     siteLocation: siteLocation ?? null,
     fiscalYear: fiscalYear ?? null,
+    clientNumber: clientNumber ?? null,
   }).returning();
-  const clientCode = formatClientCode(user!.id, fiscalYear);
+  const numForCode = clientNumber ?? user!.id;
+  const clientCode = formatClientCode(numForCode, fiscalYear);
   const [updated] = await db.update(usersTable).set({ clientCode }).where(eq(usersTable.id, user!.id)).returning();
   res.status(201).json({
     id: updated!.id, name: updated!.name, email: updated!.email,
     phone: updated!.phone, siteLocation: updated!.siteLocation,
-    fiscalYear: updated!.fiscalYear, clientCode: updated!.clientCode,
-    role: updated!.role, createdAt: updated!.createdAt,
+    fiscalYear: updated!.fiscalYear, clientNumber: updated!.clientNumber,
+    clientCode: updated!.clientCode, role: updated!.role, createdAt: updated!.createdAt,
   });
 });
 

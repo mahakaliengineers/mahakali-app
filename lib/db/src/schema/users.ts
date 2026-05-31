@@ -13,6 +13,7 @@ export const usersTable = pgTable("users", {
   phone: text("phone"),
   siteLocation: text("site_location"),
   fiscalYear: text("fiscal_year"),
+  clientNumber: text("client_number"),
   clientCode: text("client_code"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
