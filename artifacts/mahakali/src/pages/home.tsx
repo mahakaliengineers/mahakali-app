@@ -177,7 +177,7 @@ function CalculatorTool() {
   // Cost estimator state
   const [costArea, setCostArea] = useState("");
   const [costAreaUnit, setCostAreaUnit] = useState(0);
-  const [costFloors, setCostFloors] = useState(1);
+  const [costFloors, setCostFloors] = useState("1");
   const [costBuildingType, setCostBuildingType] = useState("residential");
   const [costGrade, setCostGrade] = useState("standard");
   const [costResult, setCostResult] = useState<{ total: number; perSqft: number; sqft: number; totalSqft: number } | null>(null);
@@ -193,8 +193,9 @@ function CalculatorTool() {
 
   useEffect(() => {
     const v = parseFloat(costArea);
-    if (isNaN(v) || v <= 0) { setCostResult(null); return; }
-    const totalSqft = v * AREA_INPUT_UNITS[costAreaUnit].toSqft * costFloors;
+    const floors = parseFloat(costFloors) || 0;
+    if (isNaN(v) || v <= 0 || floors <= 0) { setCostResult(null); return; }
+    const totalSqft = v * AREA_INPUT_UNITS[costAreaUnit].toSqft * floors;
     const builtupRatio = costBuildingType === "residential" ? 0.70 : 0.60;
     const builtupSqft = totalSqft * builtupRatio;
     const perSqft = COST_RATES[costBuildingType][costGrade];
@@ -530,7 +531,7 @@ function CalculatorTool() {
                   <input
                     type="number"
                     min="0"
-                    placeholder="e.g. 1500"
+                    placeholder=""
                     value={costArea}
                     onChange={e => setCostArea(e.target.value)}
                     className={inputCls + " flex-1"}
@@ -538,43 +539,27 @@ function CalculatorTool() {
                   <select
                     value={costAreaUnit}
                     onChange={e => setCostAreaUnit(Number(e.target.value))}
-                    className={selectCls + " w-40"}
+                    className={selectCls + " w-44"}
                   >
-                    {AREA_INPUT_UNITS.map((u, i) => (
-                      <option key={i} value={i} className="bg-gray-900">{u.label}</option>
-                    ))}
+                    <option value={0} className="bg-gray-900">Square Feet (sq.ft)</option>
+                    <option value={1} className="bg-gray-900">Square Meter (sq.m)</option>
                   </select>
                 </div>
               </div>
 
               {/* Number of Floors */}
               <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">
-                  Number of Floors: <span className="text-white font-bold">{costFloors}</span>
-                </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setCostFloors(f => Math.max(1, f - 1))}
-                    className="w-10 h-10 rounded bg-white/10 text-white font-bold hover:bg-white/20 transition-colors text-lg"
-                  >−</button>
-                  <div className="flex-1 flex gap-1">
-                    {[1,2,3,4,5,6,7,8].map(n => (
-                      <button
-                        key={n}
-                        onClick={() => setCostFloors(n)}
-                        className={`flex-1 h-10 rounded text-xs font-bold transition-colors border ${
-                          costFloors === n
-                            ? "bg-primary border-primary text-white"
-                            : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
-                        }`}
-                      >{n}</button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => setCostFloors(f => Math.min(20, f + 1))}
-                    className="w-10 h-10 rounded bg-white/10 text-white font-bold hover:bg-white/20 transition-colors text-lg"
-                  >+</button>
-                </div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Number of Floors</label>
+                <input
+                  type="number"
+                  min="0.5"
+                  step="0.5"
+                  placeholder=""
+                  value={costFloors}
+                  onChange={e => setCostFloors(e.target.value)}
+                  className={inputCls}
+                />
+                <p className="text-xs text-white/30 mt-1">Decimals allowed — e.g. 2.5 for ground + 2 full + half floor</p>
               </div>
 
               {/* Rate info */}
