@@ -187,12 +187,14 @@ function CalculatorTool() {
 
   // Plot calculator state
   const [plotUnit, setPlotUnit] = useState<"ft" | "m">("ft");
-  const [plotA, setPlotA] = useState("");
-  const [plotB, setPlotB] = useState("");
-  const [plotC, setPlotC] = useState("");
-  const [plotD, setPlotD] = useState("");
-  const [plotDiag, setPlotDiag] = useState("");
+  const [plotA, setPlotA] = useState(""); const [plotAIn, setPlotAIn] = useState("");
+  const [plotB, setPlotB] = useState(""); const [plotBIn, setPlotBIn] = useState("");
+  const [plotC, setPlotC] = useState(""); const [plotCIn, setPlotCIn] = useState("");
+  const [plotD, setPlotD] = useState(""); const [plotDIn, setPlotDIn] = useState("");
+  const [plotDiag, setPlotDiag] = useState(""); const [plotDiagIn, setPlotDiagIn] = useState("");
   const [plotResult, setPlotResult] = useState<PlotResult | null>(null);
+
+  const toFt = (ft: string, inches: string) => (parseFloat(ft) || 0) + (parseFloat(inches) || 0) / 12;
 
   useEffect(() => {
     const v = parseFloat(costArea);
@@ -265,11 +267,12 @@ function CalculatorTool() {
 
   useEffect(() => {
     const factor = plotUnit === "ft" ? 0.3048 : 1;
-    const a = parseFloat(plotA) * factor;
-    const b = parseFloat(plotB) * factor;
-    const c = parseFloat(plotC) * factor;
-    const d = parseFloat(plotD) * factor;
-    const diag = parseFloat(plotDiag) * factor;
+    const rawA    = plotUnit === "ft" ? toFt(plotA, plotAIn)       : parseFloat(plotA);
+    const rawB    = plotUnit === "ft" ? toFt(plotB, plotBIn)       : parseFloat(plotB);
+    const rawC    = plotUnit === "ft" ? toFt(plotC, plotCIn)       : parseFloat(plotC);
+    const rawD    = plotUnit === "ft" ? toFt(plotD, plotDIn)       : parseFloat(plotD);
+    const rawDiag = plotUnit === "ft" ? toFt(plotDiag, plotDiagIn) : parseFloat(plotDiag);
+    const a = rawA * factor, b = rawB * factor, c = rawC * factor, d = rawD * factor, diag = rawDiag * factor;
     if ([a, b, c, d, diag].some(v => isNaN(v) || v <= 0)) { setPlotResult(null); return; }
     const area1 = heronArea(a, b, diag);
     const area2 = heronArea(c, d, diag);
@@ -278,11 +281,11 @@ function CalculatorTool() {
     const sqft = sqm * 10.7639;
     const { ropani, aana, paisa, dam } = sqmToRapd(sqm);
     const bigha  = Math.floor(sqm / LAND_SQM_PER.bigha);
-    const remB   = sqm - bigha * LAND_SQM_PER.bigha;
-    const kattha = Math.floor(remB / LAND_SQM_PER.kattha);
-    const dhur   = Math.round((remB - kattha * LAND_SQM_PER.kattha) / LAND_SQM_PER.dhur);
+    const remB2  = sqm - bigha * LAND_SQM_PER.bigha;
+    const kattha = Math.floor(remB2 / LAND_SQM_PER.kattha);
+    const dhur   = Math.round((remB2 - kattha * LAND_SQM_PER.kattha) / LAND_SQM_PER.dhur);
     setPlotResult({ sqm, sqft, ropani, aana, paisa, dam, bigha, kattha, dhur });
-  }, [plotA, plotB, plotC, plotD, plotDiag, plotUnit]);
+  }, [plotA, plotAIn, plotB, plotBIn, plotC, plotCIn, plotD, plotDIn, plotDiag, plotDiagIn, plotUnit]);
 
   useEffect(() => {
     const v = parseFloat(lengthValue);
@@ -694,36 +697,83 @@ function CalculatorTool() {
 
             {/* Side A & B */}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Side A ({plotUnit})</label>
-                <input type="number" min="0" placeholder="e.g. 40" value={plotA} onChange={e => setPlotA(e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Side B ({plotUnit})</label>
-                <input type="number" min="0" placeholder="e.g. 35" value={plotB} onChange={e => setPlotB(e.target.value)} className={inputCls} />
-              </div>
+              {[
+                { label: "Side A", ft: plotA, setFt: setPlotA, inch: plotAIn, setInch: setPlotAIn, phFt: "40", phIn: "6" },
+                { label: "Side B", ft: plotB, setFt: setPlotB, inch: plotBIn, setInch: setPlotBIn, phFt: "35", phIn: "0" },
+              ].map(s => (
+                <div key={s.label}>
+                  <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">{s.label}</label>
+                  {plotUnit === "ft" ? (
+                    <div className="flex gap-1.5">
+                      <div className="relative flex-1">
+                        <input type="number" min="0" placeholder={s.phFt} value={s.ft} onChange={e => s.setFt(e.target.value)} className={inputCls + " pr-8"} />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-white/30 pointer-events-none">ft</span>
+                      </div>
+                      <div className="relative w-20">
+                        <input type="number" min="0" max="11" placeholder={s.phIn} value={s.inch} onChange={e => s.setInch(e.target.value)} className={inputCls + " pr-7"} />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-white/30 pointer-events-none">in</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <input type="number" min="0" placeholder={s.phFt} value={s.ft} onChange={e => s.setFt(e.target.value)} className={inputCls} />
+                  )}
+                </div>
+              ))}
             </div>
 
             {/* Diagonal */}
             <div>
-              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Diagonal ({plotUnit})</label>
-              <input type="number" min="0" placeholder="e.g. 53" value={plotDiag} onChange={e => setPlotDiag(e.target.value)} className={inputCls} />
+              <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Diagonal</label>
+              {plotUnit === "ft" ? (
+                <div className="flex gap-1.5">
+                  <div className="relative flex-1">
+                    <input type="number" min="0" placeholder="53" value={plotDiag} onChange={e => setPlotDiag(e.target.value)} className={inputCls + " pr-8"} />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-white/30 pointer-events-none">ft</span>
+                  </div>
+                  <div className="relative w-20">
+                    <input type="number" min="0" max="11" placeholder="0" value={plotDiagIn} onChange={e => setPlotDiagIn(e.target.value)} className={inputCls + " pr-7"} />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-white/30 pointer-events-none">in</span>
+                  </div>
+                </div>
+              ) : (
+                <input type="number" min="0" placeholder="16" value={plotDiag} onChange={e => setPlotDiag(e.target.value)} className={inputCls} />
+              )}
             </div>
 
             {/* Side C & D */}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Side C ({plotUnit})</label>
-                <input type="number" min="0" placeholder="e.g. 38" value={plotC} onChange={e => setPlotC(e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Side D ({plotUnit})</label>
-                <input type="number" min="0" placeholder="e.g. 42" value={plotD} onChange={e => setPlotD(e.target.value)} className={inputCls} />
-              </div>
+              {[
+                { label: "Side C", ft: plotC, setFt: setPlotC, inch: plotCIn, setInch: setPlotCIn, phFt: "38", phIn: "0" },
+                { label: "Side D", ft: plotD, setFt: setPlotD, inch: plotDIn, setInch: setPlotDIn, phFt: "42", phIn: "0" },
+              ].map(s => (
+                <div key={s.label}>
+                  <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">{s.label}</label>
+                  {plotUnit === "ft" ? (
+                    <div className="flex gap-1.5">
+                      <div className="relative flex-1">
+                        <input type="number" min="0" placeholder={s.phFt} value={s.ft} onChange={e => s.setFt(e.target.value)} className={inputCls + " pr-8"} />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-white/30 pointer-events-none">ft</span>
+                      </div>
+                      <div className="relative w-20">
+                        <input type="number" min="0" max="11" placeholder={s.phIn} value={s.inch} onChange={e => s.setInch(e.target.value)} className={inputCls + " pr-7"} />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-white/30 pointer-events-none">in</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <input type="number" min="0" placeholder={s.phFt} value={s.ft} onChange={e => s.setFt(e.target.value)} className={inputCls} />
+                  )}
+                </div>
+              ))}
             </div>
 
             <button
-              onClick={() => { setPlotA(""); setPlotB(""); setPlotC(""); setPlotD(""); setPlotDiag(""); }}
+              onClick={() => {
+                setPlotA(""); setPlotAIn("");
+                setPlotB(""); setPlotBIn("");
+                setPlotC(""); setPlotCIn("");
+                setPlotD(""); setPlotDIn("");
+                setPlotDiag(""); setPlotDiagIn("");
+              }}
               className="w-full py-2 text-xs font-semibold text-white/40 hover:text-white/70 border border-white/10 rounded transition-colors"
             >
               Clear All
