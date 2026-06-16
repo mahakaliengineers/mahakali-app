@@ -38,7 +38,6 @@ router.get("/portal/projects/:id/photos", requireAuth, async (req, res) => {
   const user = await getUser(req.session!.userId as number);
   const isStaff = user?.role === "admin" || user?.role === "super_admin";
 
-  // Clients only see approved photos; admins see all
   const photos = isStaff
     ? await db.select().from(photosTable).where(eq(photosTable.projectId, id)).orderBy(photosTable.uploadedAt)
     : await db.select().from(photosTable).where(and(eq(photosTable.projectId, id), eq(photosTable.status, "approved"))).orderBy(photosTable.uploadedAt);
@@ -124,12 +123,12 @@ router.post("/portal/projects/:id/comments", requireAuth, async (req, res) => {
   }
 
   const userId = req.session!.userId as number;
-  const [comment] = await db.insert(commentsTable).values({
+  const [{ id: newId }] = await db.insert(commentsTable).values({
     projectId: id,
     userId,
     message: message.trim(),
-  }).returning();
-
+  }).$returningId();
+  const [comment] = await db.select().from(commentsTable).where(eq(commentsTable.id, newId));
   const user = await getUser(userId);
   res.status(201).json({ ...comment, authorName: user?.name ?? "Unknown" });
 });

@@ -47,9 +47,10 @@ router.post("/admin/users", requireSuperAdmin, async (req, res) => {
   }
   const assignedRole = role === "admin" || role === "super_admin" ? role : "admin";
   const passwordHash = await bcrypt.hash(password, 10);
-  const [user] = await db.insert(usersTable).values({
+  const [{ id: newId }] = await db.insert(usersTable).values({
     name, email, passwordHash, role: assignedRole,
-  }).returning();
+  }).$returningId();
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, newId));
   res.status(201).json(formatUser(user!));
 });
 
@@ -62,7 +63,8 @@ router.patch("/admin/users/:id/role", requireSuperAdmin, async (req, res) => {
     res.status(400).json({ error: "Invalid role" }); return;
   }
 
-  const [user] = await db.update(usersTable).set({ role }).where(eq(usersTable.id, id)).returning();
+  await db.update(usersTable).set({ role }).where(eq(usersTable.id, id));
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
   if (!user) { res.status(404).json({ error: "Not found" }); return; }
 
   res.json(formatUser(user));

@@ -20,7 +20,7 @@ router.post("/admin/projects", requireAdmin, async (req, res) => {
   const parsed = CreateProjectBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid request body" }); return; }
   const { clientId, title, location, type, status, progress, description, startDate, endDate } = parsed.data;
-  const [project] = await db.insert(projectsTable).values({
+  const [{ id: newId }] = await db.insert(projectsTable).values({
     clientId,
     title,
     location: location ?? null,
@@ -30,7 +30,8 @@ router.post("/admin/projects", requireAdmin, async (req, res) => {
     description: description ?? null,
     startDate: startDate ? new Date(startDate) : null,
     endDate: endDate ? new Date(endDate) : null,
-  }).returning();
+  }).$returningId();
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, newId));
   res.status(201).json(project);
 });
 
@@ -49,7 +50,8 @@ router.patch("/admin/projects/:id", requireAdmin, async (req, res) => {
   if (description !== undefined) updates["description"] = description;
   if (startDate !== undefined) updates["startDate"] = startDate ? new Date(startDate) : null;
   if (endDate !== undefined) updates["endDate"] = endDate ? new Date(endDate) : null;
-  const [project] = await db.update(projectsTable).set(updates).where(eq(projectsTable.id, id)).returning();
+  await db.update(projectsTable).set(updates).where(eq(projectsTable.id, id));
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
   if (!project) { res.status(404).json({ error: "Not found" }); return; }
   res.json(project);
 });

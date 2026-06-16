@@ -1,19 +1,19 @@
-import { pgTable, text, serial, timestamp, integer, pgEnum } from "drizzle-orm/pg-core";
+import { mysqlTable, int, text, timestamp, mysqlEnum } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { projectsTable } from "./projects";
 import { usersTable } from "./users";
 
-export const fileStatusEnum = pgEnum("file_status", ["pending", "approved"]);
+export const fileStatusValues = ["pending", "approved"] as const;
 
-export const photosTable = pgTable("photos", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
-  uploadedById: integer("uploaded_by_id").references(() => usersTable.id),
+export const photosTable = mysqlTable("photos", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+  uploadedById: int("uploaded_by_id").references(() => usersTable.id),
   url: text("url").notNull(),
   caption: text("caption"),
-  status: fileStatusEnum("status").notNull().default("pending"),
-  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+  status: mysqlEnum("status", fileStatusValues).notNull().default("pending"),
+  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
 });
 
 export const insertPhotoSchema = createInsertSchema(photosTable).omit({ id: true, uploadedAt: true });

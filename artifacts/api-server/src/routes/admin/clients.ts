@@ -45,16 +45,17 @@ router.post("/admin/clients", requireAdmin, async (req, res) => {
   if (!parsed.success) { res.status(400).json({ error: "Invalid request body" }); return; }
   const { name, email, password, phone, siteLocation, fiscalYear, clientNumber } = parsed.data as any;
   const passwordHash = await bcrypt.hash(password, 10);
-  const [user] = await db.insert(usersTable).values({
+  const [{ id: newId }] = await db.insert(usersTable).values({
     name, email, passwordHash, role: "client",
     phone: phone ?? null,
     siteLocation: siteLocation ?? null,
     fiscalYear: fiscalYear ?? null,
     clientNumber: clientNumber ?? null,
-  }).returning();
-  const numForCode = clientNumber ?? user!.id;
+  }).$returningId();
+  const numForCode = clientNumber ?? newId;
   const clientCode = formatClientCode(numForCode, fiscalYear);
-  const [updated] = await db.update(usersTable).set({ clientCode }).where(eq(usersTable.id, user!.id)).returning();
+  await db.update(usersTable).set({ clientCode }).where(eq(usersTable.id, newId));
+  const [updated] = await db.select().from(usersTable).where(eq(usersTable.id, newId));
   res.status(201).json({
     id: updated!.id, name: updated!.name, email: updated!.email,
     phone: updated!.phone, siteLocation: updated!.siteLocation,

@@ -1,7 +1,8 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
+import MySQLStoreFactory from "express-mysql-session";
+import { pool } from "@workspace/db";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
@@ -12,7 +13,11 @@ declare module "express-session" {
   }
 }
 
-const PgStore = connectPgSimple(session);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MySQLStore = MySQLStoreFactory(session as any);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sessionStore = new MySQLStore({ tableName: "session", createDatabaseTable: true } as any, pool as any);
 
 const app: Express = express();
 
@@ -44,11 +49,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(session({
-  store: new PgStore({
-    conString: process.env["DATABASE_URL"],
-    tableName: "session",
-    createTableIfMissing: false,
-  }),
+  store: sessionStore,
   secret: process.env["SESSION_SECRET"] ?? "dev-secret-change-me",
   resave: false,
   saveUninitialized: false,
