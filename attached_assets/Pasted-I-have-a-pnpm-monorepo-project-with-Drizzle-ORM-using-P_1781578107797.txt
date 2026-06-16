@@ -1,0 +1,164 @@
+I have a pnpm monorepo project with Drizzle ORM using PostgreSQL.
+I need to convert the ENTIRE project to MySQL 8.0 for deployment 
+on Nest Nepal cPanel shared hosting.
+
+My exact file structure:
+- db/drizzle.config.ts → Drizzle config
+- db/src/index.ts → Database connection
+- db/src/schema/users.ts → Users table
+- db/src/schema/projects.ts → Projects table
+- db/src/schema/documents.ts → Documents table
+- db/src/schema/comments.ts → Comments table
+- db/src/schema/milestones.ts → Milestones table
+- db/src/schema/payments.ts → Payments table
+- db/src/schema/photos.ts → Photos table
+- db/src/schema/updates.ts → Updates table
+- db/src/schema/index.ts → Schema exports
+- api-server/src/app.ts → Express app
+- api-server/src/index.ts → Server entry point
+- api-server/src/lib/ → Helper libraries
+- api-server/src/middlewares/ → Middlewares
+- api-server/src/routes/ → API routes
+- portal/src/ → React frontend
+
+Please do ALL of the following changes:
+
+═══════════════════════════════════
+1. UPDATE db/drizzle.config.ts
+═══════════════════════════════════
+Change from PostgreSQL to MySQL:
+
+import { defineConfig } from 'drizzle-kit'
+export default defineConfig({
+  dialect: 'mysql',
+  schema: './src/schema',
+  out: './src/migrations',
+  dbCredentials: {
+    host: process.env.DB_HOST!,
+    user: process.env.DB_USER!,
+    password: process.env.DB_PASSWORD!,
+    database: process.env.DB_NAME!,
+    port: Number(process.env.DB_PORT) || 3306,
+  }
+})
+
+═══════════════════════════════════
+2. UPDATE db/src/index.ts (DB Connection)
+═══════════════════════════════════
+Change from postgres/neon to mysql2:
+
+import { drizzle } from 'drizzle-orm/mysql2'
+import mysql from 'mysql2/promise'
+import * as schema from './schema'
+
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT) || 3306,
+})
+
+export const db = drizzle(pool, { schema, mode: 'default' })
+
+═══════════════════════════════════
+3. UPDATE ALL schema files in db/src/schema/
+═══════════════════════════════════
+For EACH file (users, projects, documents, comments, 
+milestones, payments, photos, updates):
+
+REPLACE all PostgreSQL imports with MySQL:
+
+// REMOVE these imports:
+import { pgTable, serial, text, boolean, 
+         timestamp, integer, uuid, jsonb, 
+         varchar, decimal } from 'drizzle-orm/pg-core'
+
+// ADD these imports instead:
+import { mysqlTable, int, text, tinyint,
+         timestamp, varchar, json, 
+         decimal, mysqlEnum } from 'drizzle-orm/mysql-core'
+
+CONVERT all column types:
+- pgTable('name', {})        → mysqlTable('name', {})
+- serial('id')               → int('id').autoincrement()
+- boolean('col')             → tinyint('col', {unsigned: true})
+- boolean('col').default(true) → tinyint('col').default(1)
+- boolean('col').default(false) → tinyint('col').default(0)
+- jsonb('col')               → json('col')
+- uuid('col')                → varchar('col', {length: 36})
+- uuid('col').defaultRandom() → varchar('col',{length:36}).default(sql`(UUID())`)
+- integer('col')             → int('col')
+- text('col')                → text('col') ← same
+- varchar('col',{length:255}) → varchar('col',{length:255}) ← same
+- decimal('col')             → decimal('col') ← same
+- timestamp('col')           → timestamp('col') ← same
+- .defaultNow()              → .defaultNow() ← same
+
+═══════════════════════════════════
+4. UPDATE db/package.json
+═══════════════════════════════════
+Remove PostgreSQL packages, add MySQL:
+
+REMOVE:
+- "pg"
+- "postgres" 
+- "@neondatabase/serverless"
+- "@types/pg"
+- "drizzle-orm/pg-core" (this is part of drizzle-orm)
+
+ADD:
+- "mysql2": "^3.6.0"
+
+═══════════════════════════════════
+5. UPDATE api-server/package.json
+═══════════════════════════════════
+Same as above - remove pg, add mysql2 if referenced
+
+═══════════════════════════════════
+6. CREATE .env.example in root
+═══════════════════════════════════
+# Database - MySQL (Nest Nepal cPanel)
+DB_HOST=localhost
+DB_USER=cpanel_username_dbuser
+DB_PASSWORD=your_db_password
+DB_NAME=cpanel_username_dbname
+DB_PORT=3306
+
+# API Server
+PORT=3001
+NODE_ENV=production
+
+# Frontend
+VITE_API_URL=https://api.yourdomain.com
+
+═══════════════════════════════════
+7. GENERATE mysql_ready.sql
+═══════════════════════════════════
+After converting all schema files, generate a complete 
+MySQL SQL file that includes:
+
+- SET FOREIGN_KEY_CHECKS=0; at top
+- DROP TABLE IF EXISTS for each table (in reverse order)
+- SET FOREIGN_KEY_CHECKS=1; 
+- CREATE TABLE statements for all 8 tables:
+  users, projects, documents, comments, 
+  milestones, payments, photos, updates
+- All foreign key constraints
+- All indexes
+- Any existing seed data if present
+- MySQL 8.0 compatible syntax only
+
+Name this file: mysql_ready.sql in the root folder
+
+═══════════════════════════════════
+8. UPDATE pnpm-lock / workspace
+═══════════════════════════════════
+Run: pnpm install
+To update lockfile after package changes
+
+Please:
+1. Make ALL these changes now
+2. Show me each file after it is changed
+3. Confirm when mysql_ready.sql is generated
+4. List any issues or manual fixes needed
