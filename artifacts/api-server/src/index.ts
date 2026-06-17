@@ -14,17 +14,24 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-async function verifyDatabaseConnection() {
+async function ensureSessionTable() {
   try {
-    await pool.query("SELECT 1");
-    logger.info("Database connection verified");
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL,
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE
+      );
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+    `);
+    logger.info("Session table ready");
   } catch (err) {
-    logger.error({ err }, "Failed to connect to MySQL database");
-    process.exit(1);
+    logger.error({ err }, "Failed to ensure session table");
   }
 }
 
-verifyDatabaseConnection().then(() => {
+ensureSessionTable().then(() => {
   app.listen(port, (err) => {
     if (err) {
       logger.error({ err }, "Error listening on port");

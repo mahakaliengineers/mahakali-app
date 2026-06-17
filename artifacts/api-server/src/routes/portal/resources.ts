@@ -123,12 +123,12 @@ router.post("/portal/projects/:id/comments", requireAuth, async (req, res) => {
   }
 
   const userId = req.session!.userId as number;
-  const [{ id: newId }] = await db.insert(commentsTable).values({
+  const [comment] = await db.insert(commentsTable).values({
     projectId: id,
     userId,
     message: message.trim(),
-  }).$returningId();
-  const [comment] = await db.select().from(commentsTable).where(eq(commentsTable.id, newId));
+  }).returning();
+
   const user = await getUser(userId);
   res.status(201).json({ ...comment, authorName: user?.name ?? "Unknown" });
 });
