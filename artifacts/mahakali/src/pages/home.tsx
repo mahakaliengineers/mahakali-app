@@ -1037,7 +1037,7 @@ export default function Home() {
             <button onClick={() => scrollTo("projects")} className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}>Projects</button>
             <button onClick={() => scrollTo("process")} className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}>Process</button>
             <button onClick={() => scrollTo("calculator")} className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}>Calculator</button>
-            <a href="/portal/" className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}>
+            <a href="/client" className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}>
               Client Portal
             </a>
             <Button onClick={() => scrollTo("contact")} variant="default" className="rounded-none font-bold ml-4">
@@ -1059,7 +1059,7 @@ export default function Home() {
           <button onClick={() => scrollTo("projects")} className="text-xl font-bold text-left border-b pb-4">Projects</button>
           <button onClick={() => scrollTo("process")} className="text-xl font-bold text-left border-b pb-4">Process</button>
           <button onClick={() => scrollTo("calculator")} className="text-xl font-bold text-left border-b pb-4">Calculator</button>
-          <a href="/portal/" className="text-xl font-bold text-left border-b pb-4 text-primary">Client Portal</a>
+          <a href="/client" className="text-xl font-bold text-left border-b pb-4 text-primary">Client Portal</a>
           <Button onClick={() => scrollTo("contact")} size="lg" className="rounded-none font-bold w-full mt-4">
             Get a Quote
           </Button>

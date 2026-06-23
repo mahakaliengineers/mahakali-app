@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Switch, Route, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { adminApi, type StaffUser } from "@/lib/admin-api";
 import AdminLogin from "./login";
 import AdminLayout from "./AdminLayout";
@@ -11,7 +11,7 @@ import AdminProjectDetail from "./project-detail";
 
 export default function AdminApp() {
   const [user, setUser] = useState<StaffUser | null | undefined>(undefined);
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
 
   useEffect(() => {
     adminApi.auth.me()
@@ -22,7 +22,7 @@ export default function AdminApp() {
   async function logout() {
     await adminApi.auth.logout();
     setUser(null);
-    navigate("/admin/login");
+    navigate("/admin");
   }
 
   if (user === undefined) {
@@ -37,18 +37,30 @@ export default function AdminApp() {
     return <AdminLogin onLogin={setUser} />;
   }
 
+  // Manual routing — avoids all wouter nested-Switch / params quirks
+  const projectDetailMatch = location.match(/^\/admin\/projects\/(\d+)/);
+
+  let content: React.ReactNode;
+  if (projectDetailMatch) {
+    content = (
+      <AdminProjectDetail
+        projectId={parseInt(projectDetailMatch[1], 10)}
+        user={user}
+      />
+    );
+  } else if (location.startsWith("/admin/projects")) {
+    content = <AdminProjects user={user} />;
+  } else if (location.startsWith("/admin/clients")) {
+    content = <AdminClients />;
+  } else if (location.startsWith("/admin/users")) {
+    content = <AdminUsers currentUser={user} />;
+  } else {
+    content = <AdminDashboard user={user} />;
+  }
+
   return (
     <AdminLayout user={user} onLogout={logout}>
-      <Switch>
-        <Route path="/admin" component={() => <AdminDashboard user={user} />} />
-        <Route path="/admin/clients" component={() => <AdminClients />} />
-        <Route path="/admin/users" component={() => <AdminUsers currentUser={user} />} />
-        <Route path="/admin/projects" component={() => <AdminProjects user={user} />} />
-        <Route path="/admin/projects/:id" component={({ params }) => (
-          <AdminProjectDetail projectId={parseInt(params.id, 10)} user={user} />
-        )} />
-        <Route component={() => <AdminDashboard user={user} />} />
-      </Switch>
+      {content}
     </AdminLayout>
   );
 }

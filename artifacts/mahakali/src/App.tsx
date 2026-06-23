@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Route, Router as WouterRouter, Switch } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,11 +12,10 @@ const queryClient = new QueryClient();
 function Router() {
   return (
     <Switch>
-      <Route path="/admin" component={AdminApp} />
-      <Route path="/admin/:rest*" component={AdminApp} />
-      <Route path="/client" component={ClientApp} />
-      <Route path="/client/:rest*" component={ClientApp} />
       <Route path="/" component={Home} />
+      {/* Regex routes keep the same component instance across all sub-paths */}
+      <Route path={/^\/admin(\/.*)?$/} component={AdminApp} />
+      <Route path={/^\/client(\/.*)?$/} component={ClientApp} />
       <Route component={NotFound} />
     </Switch>
   );
