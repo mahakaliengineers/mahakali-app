@@ -24,6 +24,19 @@ export interface StaffUser {
   createdAt: string;
 }
 
+export interface ClientUser {
+  id: number;
+  name: string;
+  email: string;
+  role: "client";
+  phone: string | null;
+  siteLocation: string | null;
+  fiscalYear: string | null;
+  clientNumber: string | null;
+  clientCode: string | null;
+  createdAt: string;
+}
+
 export interface ProjectAssignment {
   id: number;
   userId: number;
@@ -75,6 +88,15 @@ export const adminApi = {
     delete: (id: number) =>
       fetch(`${BASE}/staff/users/${id}`, { method: "DELETE", credentials: "include" }),
   },
+  clients: {
+    list: () => req<ClientUser[]>("/staff/clients"),
+    create: (data: { name: string; email: string; password: string; phone?: string; siteLocation?: string; fiscalYear?: string; clientNumber?: string }) =>
+      req<ClientUser>("/staff/clients", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: Partial<{ name: string; email: string; phone: string; siteLocation: string; fiscalYear: string; clientNumber: string; password: string }>) =>
+      req<ClientUser>(`/staff/clients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    delete: (id: number) =>
+      fetch(`${BASE}/staff/clients/${id}`, { method: "DELETE", credentials: "include" }),
+  },
   projects: {
     list: () => req<StaffProject[]>("/staff/projects"),
     get: (id: number) => req<StaffProjectDetail>(`/staff/projects/${id}`),
@@ -88,9 +110,6 @@ export const adminApi = {
       }),
     removeAssignment: (projectId: number, userId: number) =>
       req<ProjectAssignment[]>(`/staff/projects/${projectId}/assignments/${userId}`, { method: "DELETE" }),
-  },
-  clients: {
-    list: () => req<any[]>("/admin/clients"),
   },
 };
 

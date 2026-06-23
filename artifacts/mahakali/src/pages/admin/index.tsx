@@ -5,6 +5,7 @@ import AdminLogin from "./login";
 import AdminLayout from "./AdminLayout";
 import AdminDashboard from "./dashboard";
 import AdminUsers from "./users";
+import AdminClients from "./clients";
 import AdminProjects from "./projects";
 import AdminProjectDetail from "./project-detail";
 
@@ -40,6 +41,7 @@ export default function AdminApp() {
     <AdminLayout user={user} onLogout={logout}>
       <Switch>
         <Route path="/admin" component={() => <AdminDashboard user={user} />} />
+        <Route path="/admin/clients" component={() => <AdminClients />} />
         <Route path="/admin/users" component={() => <AdminUsers currentUser={user} />} />
         <Route path="/admin/projects" component={() => <AdminProjects user={user} />} />
         <Route path="/admin/projects/:id" component={({ params }) => (
