@@ -13,6 +13,10 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+async function rawReq(path: string, options?: RequestInit): Promise<Response> {
+  return fetch(`${BASE}${path}`, { credentials: "include", ...options });
+}
+
 export type StaffRole = "super_admin" | "admin" | "engineer" | "site_engineer" | "project_manager";
 
 export interface StaffUser {
@@ -47,6 +51,58 @@ export interface ProjectAssignment {
   assignedAt: string;
 }
 
+export interface Milestone {
+  id: number;
+  projectId: number;
+  title: string;
+  description: string | null;
+  order: number;
+  dueDate: string | null;
+  completedAt: string | null;
+  verifiedAt: string | null;
+  verifiedById: number | null;
+  createdAt: string;
+}
+
+export interface ProjectPhoto {
+  id: number;
+  projectId: number;
+  uploadedById: number | null;
+  url: string;
+  caption: string | null;
+  status: "pending" | "approved";
+  uploadedAt: string;
+}
+
+export interface ProjectDocument {
+  id: number;
+  projectId: number;
+  uploadedById: number | null;
+  name: string;
+  url: string;
+  type: string;
+  status: "pending" | "approved";
+  uploadedAt: string;
+}
+
+export interface Payment {
+  id: number;
+  projectId: number;
+  label: string;
+  amount: string;
+  status: "paid" | "pending" | "overdue";
+  dueDate: string | null;
+  paidAt: string | null;
+  createdAt: string;
+}
+
+export interface ProjectUpdate {
+  id: number;
+  projectId: number;
+  message: string;
+  postedAt: string;
+}
+
 export interface StaffProject {
   id: number;
   clientId: number;
@@ -65,9 +121,11 @@ export interface StaffProject {
 export interface StaffProjectDetail extends StaffProject {
   client: { id: number; name: string; email: string; phone: string | null } | null;
   assignments: ProjectAssignment[];
-  milestones: any[];
-  payments: any[];
-  updates: any[];
+  milestones: Milestone[];
+  payments: Payment[];
+  updates: ProjectUpdate[];
+  photos: ProjectPhoto[];
+  documents: ProjectDocument[];
 }
 
 export const adminApi = {
@@ -91,7 +149,7 @@ export const adminApi = {
     changeRole: (id: number, role: StaffRole) =>
       req<StaffUser>(`/staff/users/${id}/role`, { method: "PATCH", body: JSON.stringify({ role }) }),
     delete: (id: number) =>
-      fetch(`${BASE}/staff/users/${id}`, { method: "DELETE", credentials: "include" }),
+      rawReq(`/staff/users/${id}`, { method: "DELETE" }),
   },
   clients: {
     list: () => req<ClientUser[]>("/staff/clients"),
@@ -100,7 +158,7 @@ export const adminApi = {
     update: (id: number, data: Partial<{ name: string; email: string; phone: string; siteLocation: string; fiscalYear: string; clientNumber: string; password: string }>) =>
       req<ClientUser>(`/staff/clients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: number) =>
-      fetch(`${BASE}/staff/clients/${id}`, { method: "DELETE", credentials: "include" }),
+      rawReq(`/staff/clients/${id}`, { method: "DELETE" }),
   },
   projects: {
     list: () => req<StaffProject[]>("/staff/projects"),
@@ -115,6 +173,56 @@ export const adminApi = {
       }),
     removeAssignment: (projectId: number, userId: number) =>
       req<ProjectAssignment[]>(`/staff/projects/${projectId}/assignments/${userId}`, { method: "DELETE" }),
+    addUpdate: (id: number, message: string) =>
+      req<ProjectUpdate>(`/staff/projects/${id}/updates`, { method: "POST", body: JSON.stringify({ message }) }),
+  },
+  milestones: {
+    list: (projectId: number) => req<Milestone[]>(`/staff/projects/${projectId}/milestones`),
+    create: (projectId: number, data: { title: string; description?: string; dueDate?: string; order?: number }) =>
+      req<Milestone>(`/staff/projects/${projectId}/milestones`, { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: Partial<{ title: string; description: string; dueDate: string | null; order: number; completedAt: string | null }>) =>
+      req<Milestone>(`/staff/milestones/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    markComplete: (id: number) =>
+      req<Milestone>(`/staff/milestones/${id}`, { method: "PATCH", body: JSON.stringify({ completedAt: new Date().toISOString() }) }),
+    markIncomplete: (id: number) =>
+      req<Milestone>(`/staff/milestones/${id}`, { method: "PATCH", body: JSON.stringify({ completedAt: null }) }),
+    verify: (id: number) =>
+      req<Milestone>(`/staff/milestones/${id}/verify`, { method: "PATCH" }),
+    reject: (id: number) =>
+      req<Milestone>(`/staff/milestones/${id}/reject`, { method: "PATCH" }),
+    delete: (id: number) =>
+      rawReq(`/staff/milestones/${id}`, { method: "DELETE" }),
+  },
+  photos: {
+    upload: (projectId: number, data: { url: string; caption?: string }) =>
+      req<ProjectPhoto>(`/staff/projects/${projectId}/photos`, { method: "POST", body: JSON.stringify(data) }),
+    approve: (id: number) =>
+      req<ProjectPhoto>(`/staff/photos/${id}/approve`, { method: "PATCH" }),
+    delete: (id: number) =>
+      rawReq(`/staff/photos/${id}`, { method: "DELETE" }),
+  },
+  documents: {
+    upload: (projectId: number, data: { name: string; url: string; type?: string }) =>
+      req<ProjectDocument>(`/staff/projects/${projectId}/documents`, { method: "POST", body: JSON.stringify(data) }),
+    approve: (id: number) =>
+      req<ProjectDocument>(`/staff/documents/${id}/approve`, { method: "PATCH" }),
+    delete: (id: number) =>
+      rawReq(`/staff/documents/${id}`, { method: "DELETE" }),
+  },
+  payments: {
+    list: (projectId: number) => req<Payment[]>(`/staff/projects/${projectId}/payments`),
+    create: (projectId: number, data: { label: string; amount: string | number; status?: string; dueDate?: string }) =>
+      req<Payment>(`/staff/projects/${projectId}/payments`, { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: Partial<{ label: string; amount: string | number; status: string; paidAt: string | null; dueDate: string | null }>) =>
+      req<Payment>(`/staff/payments/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    delete: (id: number) =>
+      rawReq(`/staff/payments/${id}`, { method: "DELETE" }),
+  },
+  storage: {
+    requestUploadUrl: (name: string) =>
+      req<{ uploadURL: string; objectPath: string }>("/staff/storage/upload-url", {
+        method: "POST", body: JSON.stringify({ name }),
+      }),
   },
 };
 

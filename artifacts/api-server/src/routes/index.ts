@@ -13,6 +13,8 @@ import staffAuthRouter from "./staff/auth";
 import staffUsersRouter from "./staff/users";
 import staffProjectsRouter from "./staff/projects";
 import staffClientsRouter from "./staff/clients";
+import staffResourcesRouter from "./staff/resources";
+import staffStorageRouter from "./staff/storage";
 
 const router: IRouter = Router();
 
@@ -30,5 +32,7 @@ router.use(staffAuthRouter);
 router.use(staffUsersRouter);
 router.use(staffProjectsRouter);
 router.use(staffClientsRouter);
+router.use(staffResourcesRouter);
+router.use(staffStorageRouter);
 
 export default router;

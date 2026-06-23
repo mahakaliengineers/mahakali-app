@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { adminApi, type StaffUser, type StaffProjectDetail, ROLE_LABELS, ROLE_COLORS } from "@/lib/admin-api";
+import {
+  adminApi, type StaffUser, type StaffProjectDetail, type Milestone,
+  type ProjectDocument, type ProjectPhoto, type Payment, ROLE_LABELS, ROLE_COLORS,
+} from "@/lib/admin-api";
 
 const STATUS_COLORS: Record<string, string> = {
   planning: "bg-yellow-100 text-yellow-700",
@@ -9,407 +12,873 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "bg-blue-100 text-blue-700",
 };
 
+const PAYMENT_STATUS_COLORS: Record<string, string> = {
+  paid: "bg-green-100 text-green-700",
+  pending: "bg-yellow-100 text-yellow-700",
+  overdue: "bg-red-100 text-red-700",
+};
+
+const DOC_TYPES = ["contract", "report", "drawing", "permit", "invoice", "bill", "other"];
+
+type Tab = "overview" | "milestones" | "documents" | "photos" | "payments" | "updates";
+
+function getFileUrl(objectPath: string): string {
+  const stripped = objectPath.startsWith("/objects/") ? objectPath.slice("/objects/".length) : objectPath;
+  return `/api/staff/storage/serve?path=${encodeURIComponent(stripped)}`;
+}
+
+function fmt(d: string | null | undefined): string {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+}
+
+function useFileUpload() {
+  const [uploading, setUploading] = useState(false);
+  async function uploadFile(file: File): Promise<string> {
+    const { uploadURL, objectPath } = await adminApi.storage.requestUploadUrl(file.name);
+    await fetch(uploadURL, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+    });
+    return objectPath;
+  }
+  return { uploading, setUploading, uploadFile };
+}
+
 export default function AdminProjectDetail({ projectId, user }: { projectId: number; user: StaffUser }) {
   const [, navigate] = useLocation();
   const [project, setProject] = useState<StaffProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showAssign, setShowAssign] = useState(false);
-  const [editProgress, setEditProgress] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState("");
-  const [showAddUpdate, setShowAddUpdate] = useState(false);
-  const [updateText, setUpdateText] = useState("");
-  const [postingUpdate, setPostingUpdate] = useState(false);
+  const [tab, setTab] = useState<Tab>("overview");
 
-  // super_admin + admin: full control (create project, delete, manage clients, see everything)
+  const isSuperAdmin = user.role === "super_admin";
   const canFullAccess = user.role === "super_admin" || user.role === "admin";
-  // super_admin + admin + project_manager: manage team assignments
   const canAssign = canFullAccess || user.role === "project_manager";
-  // all roles: can update project details (engineers must be assigned — enforced server-side)
-  const canUpdate = true;
+  const canManagePayments = canFullAccess || user.role === "project_manager";
 
   async function load() {
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
       const p = await adminApi.projects.get(projectId);
       setProject(p);
-      setProgress(p.progress);
-      setStatus(p.status);
-    } catch (err: any) {
-      setError(err.message ?? "Failed to load project");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { setError(err.message ?? "Failed to load project"); }
+    finally { setLoading(false); }
   }
-
   useEffect(() => { load(); }, [projectId]);
 
-  async function handleProgressSave() {
-    if (!project) return;
-    try {
-      await adminApi.projects.update(projectId, { progress, status });
-      setEditProgress(false);
-      await load();
-    } catch (err: any) {
-      alert(err.message ?? "Failed to update");
-    }
-  }
-
-  async function handleRemoveAssignment(userId: number) {
-    if (!confirm("Remove this team member from the project?")) return;
-    try {
-      await adminApi.projects.removeAssignment(projectId, userId);
-      await load();
-    } catch (err: any) {
-      alert(err.message ?? "Failed");
-    }
-  }
-
-  if (loading) return (
-    <div className="space-y-4 animate-pulse">
-      <div className="h-8 w-64 bg-gray-200 rounded" />
-      <div className="h-48 bg-gray-100 rounded-xl" />
-    </div>
-  );
-
-  if (error) return (
-    <div className="text-center py-16 text-red-600">
-      <p className="font-medium">{error}</p>
-      <Link href="/admin/projects" className="text-sm text-gray-500 hover:underline mt-2 block">← Back to projects</Link>
-    </div>
-  );
-
+  if (loading) return <div className="p-8 text-center text-gray-500">Loading…</div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
   if (!project) return null;
 
+  const docs = project.documents ?? [];
+  const photos = project.photos ?? [];
+  const milestones = project.milestones ?? [];
+  const payments = project.payments ?? [];
+  const updates = project.updates ?? [];
+
+  const TABS: { id: Tab; label: string; count?: number }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "milestones", label: "Milestones", count: milestones.length },
+    { id: "documents", label: "Documents", count: docs.length },
+    { id: "photos", label: "Photos", count: photos.length },
+    { id: "payments", label: "Payments", count: payments.length },
+    { id: "updates", label: "Updates", count: updates.length },
+  ];
+
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Link href="/admin/projects" className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-2">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Projects
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project.status]}`}>
-              {project.status.replace("_", " ")}
-            </span>
-            {project.type && <span className="text-sm text-gray-400">{project.type}</span>}
-            {project.location && <span className="text-sm text-gray-400">· {project.location}</span>}
-          </div>
-        </div>
-        {/* Role badge */}
-        <div className="flex-shrink-0">
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${ROLE_COLORS[user.role]}`}>
-            {ROLE_LABELS[user.role]}
-          </span>
-        </div>
+    <div>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <Link href="/admin/projects" className="text-gray-400 hover:text-gray-600 text-sm">← Projects</Link>
+        <span className="text-gray-300">/</span>
+        <h1 className="text-xl font-semibold text-gray-900">{project.title}</h1>
+        <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[project.status]}`}>
+          {project.status.replace("_", " ")}
+        </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Progress Card */}
-        <div className="md:col-span-2 bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900">Project Progress</h2>
-            {canUpdate && !editProgress && (
-              <button onClick={() => setEditProgress(true)} className="text-xs text-red-600 hover:underline font-medium">
-                Update
-              </button>
+      {/* Tab Bar */}
+      <div className="flex gap-1 border-b border-gray-200 mb-6">
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors ${
+              tab === t.id
+                ? "text-[hsl(352,83%,50%)] border-b-2 border-[hsl(352,83%,50%)] -mb-px bg-white"
+                : "text-gray-500 hover:text-gray-800"
+            }`}
+          >
+            {t.label}
+            {t.count !== undefined && t.count > 0 && (
+              <span className="ml-1.5 bg-gray-100 text-gray-600 text-xs rounded-full px-1.5 py-0.5">{t.count}</span>
             )}
-          </div>
-          {editProgress ? (
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Status</label>
-                <select value={status} onChange={e => setStatus(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
-                  <option value="planning">Planning</option>
-                  <option value="active">Active</option>
-                  <option value="on_hold">On Hold</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Progress: {progress}%</label>
-                <input type="range" min="0" max="100" value={progress} onChange={e => setProgress(parseInt(e.target.value))}
-                  className="w-full accent-red-600" />
-              </div>
-              <div className="flex gap-2">
-                <button onClick={handleProgressSave} className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">Save</button>
-                <button onClick={() => setEditProgress(false)} className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800">Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Completion</span>
-                <span className="font-semibold text-gray-900">{project.progress}%</span>
-              </div>
-              <div className="bg-gray-100 rounded-full h-3">
-                <div className="bg-red-500 h-3 rounded-full transition-all" style={{ width: `${project.progress}%` }} />
-              </div>
-            </div>
-          )}
+          </button>
+        ))}
+      </div>
 
+      {/* Tab Content */}
+      {/* Pass normalised data so sub-tabs never crash on missing fields */}
+      {(() => {
+        const p = { ...project, milestones, payments, updates, photos, documents: docs };
+        return (
+          <>
+            {tab === "overview" && (
+              <OverviewTab project={p} user={user} canFullAccess={canFullAccess} canAssign={canAssign} onReload={load} navigate={navigate} />
+            )}
+            {tab === "milestones" && (
+              <MilestonesTab project={p} user={user} isSuperAdmin={isSuperAdmin} canFullAccess={canFullAccess} onReload={load} />
+            )}
+            {tab === "documents" && (
+              <DocumentsTab project={p} user={user} isSuperAdmin={isSuperAdmin} canFullAccess={canFullAccess} onReload={load} />
+            )}
+            {tab === "photos" && (
+              <PhotosTab project={p} user={user} isSuperAdmin={isSuperAdmin} canFullAccess={canFullAccess} onReload={load} />
+            )}
+            {tab === "payments" && (
+              <PaymentsTab project={p} user={user} isSuperAdmin={isSuperAdmin} canManagePayments={canManagePayments} canFullAccess={canFullAccess} onReload={load} />
+            )}
+            {tab === "updates" && (
+              <UpdatesTab project={p} onReload={load} />
+            )}
+          </>
+        );
+      })()}
+    </div>
+  );
+}
+
+// ─── OVERVIEW TAB ──────────────────────────────────────────────────────────────
+function OverviewTab({ project, user, canFullAccess, canAssign, onReload, navigate }: any) {
+  const [editProgress, setEditProgress] = useState(false);
+  const [progress, setProgress] = useState(project.progress);
+  const [status, setStatus] = useState(project.status);
+  const [showAssign, setShowAssign] = useState(false);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [assignUserId, setAssignUserId] = useState("");
+  const [assignRoleLabel, setAssignRoleLabel] = useState("");
+
+  async function saveProgress() {
+    try { await adminApi.projects.update(project.id, { progress, status }); onReload(); setEditProgress(false); }
+    catch (e: any) { alert(e.message); }
+  }
+
+  async function loadUsers() {
+    try { const us = await adminApi.users.list(); setAllUsers(us); } catch {}
+  }
+
+  async function handleAssign() {
+    if (!assignUserId || !assignRoleLabel) return;
+    try {
+      await adminApi.projects.assign(project.id, parseInt(assignUserId), assignRoleLabel);
+      onReload(); setShowAssign(false); setAssignUserId(""); setAssignRoleLabel("");
+    } catch (e: any) { alert(e.message); }
+  }
+
+  async function handleRemove(userId: number) {
+    if (!confirm("Remove this team member?")) return;
+    try { await adminApi.projects.removeAssignment(project.id, userId); onReload(); } catch (e: any) { alert(e.message); }
+  }
+
+  async function handleDelete() {
+    if (!confirm(`Delete project "${project.title}"? This cannot be undone.`)) return;
+    try { await adminApi.projects.update(project.id, { deleted: true }); navigate("/admin/projects"); } catch (e: any) { alert(e.message); }
+  }
+
+  useEffect(() => { if (showAssign) loadUsers(); }, [showAssign]);
+
+  return (
+    <div className="space-y-6">
+      {/* Progress card */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-gray-900">Progress</h2>
+          {!editProgress && (
+            <button onClick={() => setEditProgress(true)} className="text-sm text-[hsl(352,83%,50%)] hover:underline">Edit</button>
+          )}
+        </div>
+        {editProgress ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Progress ({progress}%)</label>
+              <input type="range" min={0} max={100} value={progress} onChange={e => setProgress(+e.target.value)} className="w-full" />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Status</label>
+              <select value={status} onChange={e => setStatus(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full">
+                <option value="planning">Planning</option>
+                <option value="active">Active</option>
+                <option value="on_hold">On Hold</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={saveProgress} className="bg-[hsl(352,83%,50%)] text-white px-4 py-1.5 rounded-lg text-sm hover:opacity-90">Save</button>
+              <button onClick={() => setEditProgress(false)} className="text-gray-500 text-sm hover:text-gray-800">Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-3xl font-bold text-gray-900">{project.progress}%</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[project.status]}`}>{project.status.replace("_", " ")}</span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-3">
+              <div className="h-3 rounded-full bg-[hsl(352,83%,50%)] transition-all" style={{ width: `${project.progress}%` }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Project Info */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="font-semibold text-gray-900 mb-4">Project Details</h2>
+        <dl className="grid grid-cols-2 gap-4 text-sm">
+          <div><dt className="text-gray-500">Client</dt><dd className="font-medium">{project.client?.name ?? "—"}</dd></div>
+          <div><dt className="text-gray-500">Location</dt><dd className="font-medium">{project.location ?? "—"}</dd></div>
+          <div><dt className="text-gray-500">Type</dt><dd className="font-medium">{project.type ?? "—"}</dd></div>
+          <div><dt className="text-gray-500">Start Date</dt><dd className="font-medium">{fmt(project.startDate)}</dd></div>
+          <div><dt className="text-gray-500">End Date</dt><dd className="font-medium">{fmt(project.endDate)}</dd></div>
+          <div><dt className="text-gray-500">Created</dt><dd className="font-medium">{fmt(project.createdAt)}</dd></div>
           {project.description && (
-            <p className="mt-4 text-sm text-gray-500 border-t border-gray-100 pt-4">{project.description}</p>
+            <div className="col-span-2"><dt className="text-gray-500">Description</dt><dd className="font-medium whitespace-pre-wrap">{project.description}</dd></div>
           )}
-        </div>
-
-        {/* Info Card */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-          <h2 className="font-semibold text-gray-900">Details</h2>
-          <InfoRow label="Client" value={project.client?.name ?? "—"} />
-          <InfoRow label="Email" value={project.client?.email ?? "—"} />
-          <InfoRow label="Phone" value={project.client?.phone ?? "—"} />
-          <InfoRow label="Start" value={project.startDate ? new Date(project.startDate).toLocaleDateString() : "—"} />
-          <InfoRow label="End" value={project.endDate ? new Date(project.endDate).toLocaleDateString() : "—"} />
-        </div>
+        </dl>
       </div>
 
-      {/* Team Assignments — visible to all, manageable only by canAssign roles */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Project Team</h2>
+      {/* Team */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-gray-900">Team Members</h2>
           {canAssign && (
-            <button
-              onClick={() => setShowAssign(true)}
-              className="flex items-center gap-1.5 text-xs bg-red-600 hover:bg-red-700 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Assign Member
+            <button onClick={() => setShowAssign(v => !v)} className="text-sm text-[hsl(352,83%,50%)] hover:underline">
+              {showAssign ? "Cancel" : "+ Add Member"}
             </button>
           )}
         </div>
+        {showAssign && (
+          <div className="flex gap-2 mb-4 p-3 bg-gray-50 rounded-lg">
+            <select value={assignUserId} onChange={e => setAssignUserId(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1">
+              <option value="">Select staff member…</option>
+              {allUsers.map((u: any) => (
+                <option key={u.id} value={u.id}>{u.name} ({ROLE_LABELS[u.role as keyof typeof ROLE_LABELS] ?? u.role})</option>
+              ))}
+            </select>
+            <input placeholder="Role on project" value={assignRoleLabel} onChange={e => setAssignRoleLabel(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-48" />
+            <button onClick={handleAssign} className="bg-[hsl(352,83%,50%)] text-white px-4 py-2 rounded-lg text-sm hover:opacity-90">Assign</button>
+          </div>
+        )}
         {project.assignments.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 text-sm">No team members assigned yet.</div>
+          <p className="text-gray-400 text-sm">No team members assigned yet.</p>
         ) : (
-          <div className="divide-y divide-gray-50">
-            {project.assignments.map(a => (
-              <div key={a.id} className="flex items-center justify-between px-5 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-red-100 text-red-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    {(a.userName ?? "?").charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{a.userName ?? "Unknown"}</p>
-                    <p className="text-xs text-gray-400">{a.userEmail ?? ""}</p>
-                  </div>
+          <div className="space-y-2">
+            {project.assignments.map((a: any) => (
+              <div key={a.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                <div>
+                  <p className="font-medium text-sm text-gray-900">{a.userName ?? "Unknown"}</p>
+                  <p className="text-xs text-gray-500">{a.roleLabel} · {a.userEmail}</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  {a.userRole && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[a.userRole]}`}>
-                      {ROLE_LABELS[a.userRole]}
-                    </span>
-                  )}
-                  <span className="text-xs text-gray-400 hidden sm:block">{a.roleLabel}</span>
-                  {canAssign && (
-                    <button onClick={() => handleRemoveAssignment(a.userId)} className="text-xs text-red-500 hover:underline">Remove</button>
-                  )}
-                </div>
+                {canAssign && (
+                  <button onClick={() => handleRemove(a.userId)} className="text-gray-400 hover:text-red-500 text-xs">Remove</button>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Milestones */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Milestones</h2>
+      {canFullAccess && (
+        <div className="pt-2">
+          <button onClick={handleDelete} className="text-sm text-red-500 hover:text-red-700">Delete this project</button>
         </div>
-        {project.milestones.length === 0 ? (
-          <div className="p-6 text-center text-gray-400 text-sm">No milestones defined yet.</div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {project.milestones.map((m: any) => (
-              <div key={m.id} className="flex items-center gap-3 px-5 py-3">
-                <div className={`w-5 h-5 rounded-full flex-shrink-0 border-2 ${m.completed ? "bg-green-500 border-green-500" : "border-gray-300"}`}>
-                  {m.completed && (
-                    <svg className="w-full h-full text-white p-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium ${m.completed ? "line-through text-gray-400" : "text-gray-900"}`}>{m.title}</p>
-                  {m.dueDate && <p className="text-xs text-gray-400">Due: {new Date(m.dueDate).toLocaleDateString()}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Project Updates */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Project Updates</h2>
-          {canUpdate && (
-            <button
-              onClick={() => setShowAddUpdate(v => !v)}
-              className="text-xs text-red-600 hover:underline font-medium"
-            >
-              {showAddUpdate ? "Cancel" : "+ Add Update"}
-            </button>
-          )}
-        </div>
-        {showAddUpdate && (
-          <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
-            <textarea
-              value={updateText}
-              onChange={e => setUpdateText(e.target.value)}
-              rows={3}
-              placeholder="Describe the latest progress, issues, or notes…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
-            />
-            <div className="flex justify-end gap-2 mt-2">
-              <button onClick={() => { setShowAddUpdate(false); setUpdateText(""); }}
-                className="px-3 py-1.5 text-xs text-gray-600">Cancel</button>
-              <button
-                disabled={!updateText.trim() || postingUpdate}
-                onClick={async () => {
-                  if (!updateText.trim()) return;
-                  setPostingUpdate(true);
-                  try {
-                    await fetch(`/api/staff/projects/${projectId}/updates`, {
-                      method: "POST",
-                      credentials: "include",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ content: updateText.trim() }),
-                    });
-                    setUpdateText("");
-                    setShowAddUpdate(false);
-                    await load();
-                  } catch {
-                    alert("Failed to post update");
-                  } finally {
-                    setPostingUpdate(false);
-                  }
-                }}
-                className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium disabled:opacity-50"
-              >
-                {postingUpdate ? "Posting…" : "Post Update"}
-              </button>
-            </div>
-          </div>
-        )}
-        {project.updates.length === 0 ? (
-          <div className="p-6 text-center text-gray-400 text-sm">No updates posted yet.</div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {[...project.updates].reverse().slice(0, 10).map((u: any) => (
-              <div key={u.id} className="px-5 py-3">
-                <p className="text-sm text-gray-700">{u.content ?? u.message}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{new Date(u.postedAt).toLocaleDateString()}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {showAssign && (
-        <AssignModal
-          projectId={projectId}
-          existingIds={project.assignments.map(a => a.userId)}
-          onClose={() => setShowAssign(false)}
-          onSave={async () => { setShowAssign(false); await load(); }}
-        />
       )}
     </div>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+// ─── MILESTONES TAB ────────────────────────────────────────────────────────────
+function MilestonesTab({ project, user, isSuperAdmin, canFullAccess, onReload }: any) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ title: "", description: "", dueDate: "", order: "0" });
+  const [saving, setSaving] = useState(false);
+
+  async function handleAdd() {
+    if (!form.title.trim()) return;
+    setSaving(true);
+    try {
+      await adminApi.milestones.create(project.id, {
+        title: form.title,
+        description: form.description || undefined,
+        dueDate: form.dueDate || undefined,
+        order: parseInt(form.order) || 0,
+      });
+      setForm({ title: "", description: "", dueDate: "", order: "0" });
+      setShowAdd(false);
+      onReload();
+    } catch (e: any) { alert(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function toggleComplete(m: Milestone) {
+    try {
+      if (m.completedAt) await adminApi.milestones.markIncomplete(m.id);
+      else await adminApi.milestones.markComplete(m.id);
+      onReload();
+    } catch (e: any) { alert(e.message); }
+  }
+
+  async function handleVerify(m: Milestone) {
+    try { await adminApi.milestones.verify(m.id); onReload(); } catch (e: any) { alert(e.message); }
+  }
+
+  async function handleReject(m: Milestone) {
+    if (!confirm("Reject and re-open this milestone?")) return;
+    try { await adminApi.milestones.reject(m.id); onReload(); } catch (e: any) { alert(e.message); }
+  }
+
+  async function handleDelete(m: Milestone) {
+    if (!confirm("Delete this milestone?")) return;
+    try { await adminApi.milestones.delete(m.id); onReload(); } catch (e: any) { alert(e.message); }
+  }
+
+  const milestones: Milestone[] = project.milestones;
+  const total = milestones.length;
+  const verified = milestones.filter(m => m.verifiedAt).length;
+  const completed = milestones.filter(m => m.completedAt && !m.verifiedAt).length;
+
   return (
-    <div className="flex justify-between text-sm">
-      <span className="text-gray-400">{label}</span>
-      <span className="text-gray-700 font-medium text-right ml-2 truncate max-w-[60%]">{value}</span>
+    <div className="space-y-4">
+      {/* Summary */}
+      {total > 0 && (
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-gray-900">{total}</div>
+            <div className="text-xs text-gray-500 mt-1">Total</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-yellow-600">{completed}</div>
+            <div className="text-xs text-gray-500 mt-1">Pending Verification</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{verified}</div>
+            <div className="text-xs text-gray-500 mt-1">Verified</div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Button */}
+      <div className="flex justify-end">
+        <button onClick={() => setShowAdd(v => !v)} className="bg-[hsl(352,83%,50%)] text-white px-4 py-2 rounded-lg text-sm hover:opacity-90">
+          {showAdd ? "Cancel" : "+ Add Milestone"}
+        </button>
+      </div>
+
+      {/* Add Form */}
+      {showAdd && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+          <h3 className="font-medium text-gray-900">New Milestone</h3>
+          <input placeholder="Title *" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+          <textarea placeholder="Description (optional)" value={form.description}
+            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm h-20 resize-none" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Due Date</label>
+              <input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Order</label>
+              <input type="number" value={form.order} onChange={e => setForm(f => ({ ...f, order: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+            </div>
+          </div>
+          <button onClick={handleAdd} disabled={saving || !form.title.trim()}
+            className="bg-[hsl(352,83%,50%)] text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-50">
+            {saving ? "Adding…" : "Add Milestone"}
+          </button>
+        </div>
+      )}
+
+      {/* Milestones List */}
+      {milestones.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-400">
+          No milestones yet. Add one to track project progress.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {milestones.map(m => {
+            const isCompleted = !!m.completedAt;
+            const isVerified = !!m.verifiedAt;
+            const pendingVerify = isCompleted && !isVerified;
+            return (
+              <div key={m.id} className={`bg-white border rounded-xl p-4 transition-all ${isVerified ? "border-green-200" : pendingVerify ? "border-yellow-200" : "border-gray-200"}`}>
+                <div className="flex items-start gap-3">
+                  {/* Checkbox */}
+                  <button
+                    onClick={() => toggleComplete(m)}
+                    disabled={isVerified}
+                    className={`mt-0.5 w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                      isVerified ? "bg-green-500 border-green-500 cursor-not-allowed" :
+                      isCompleted ? "bg-yellow-400 border-yellow-400" :
+                      "border-gray-300 hover:border-[hsl(352,83%,50%)]"
+                    }`}
+                    title={isVerified ? "Verified" : isCompleted ? "Pending verification — click to re-open" : "Mark complete"}
+                  >
+                    {(isCompleted || isVerified) && (
+                      <svg viewBox="0 0 12 12" className="w-3 h-3 text-white fill-current">
+                        <path d="M10 3L5 8.5 2 5.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </button>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`font-medium text-sm ${isVerified ? "text-green-800" : isCompleted ? "text-yellow-800" : "text-gray-900"}`}>
+                        {m.title}
+                      </span>
+                      {isVerified && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">✓ Verified</span>}
+                      {pendingVerify && <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">Pending Verification</span>}
+                      {!isCompleted && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Open</span>}
+                    </div>
+                    {m.description && <p className="text-xs text-gray-500 mt-0.5">{m.description}</p>}
+                    <div className="flex gap-4 mt-1 text-xs text-gray-400">
+                      {m.dueDate && <span>Due: {fmt(m.dueDate)}</span>}
+                      {m.completedAt && <span>Completed: {fmt(m.completedAt)}</span>}
+                      {m.verifiedAt && <span>Verified: {fmt(m.verifiedAt)}</span>}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 ml-2">
+                    {isSuperAdmin && pendingVerify && (
+                      <>
+                        <button onClick={() => handleVerify(m)} className="text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">Verify</button>
+                        <button onClick={() => handleReject(m)} className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">Reject</button>
+                      </>
+                    )}
+                    {canFullAccess && (
+                      <button onClick={() => handleDelete(m)} className="text-gray-300 hover:text-red-400 text-lg leading-none">×</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-function AssignModal({
-  projectId, existingIds, onClose, onSave,
-}: {
-  projectId: number;
-  existingIds: number[];
-  onClose: () => void;
-  onSave: () => Promise<void>;
-}) {
-  const [staff, setStaff] = useState<any[]>([]);
-  const [userId, setUserId] = useState("");
-  const [roleLabel, setRoleLabel] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+// ─── DOCUMENTS TAB ─────────────────────────────────────────────────────────────
+function DocumentsTab({ project, isSuperAdmin, canFullAccess, onReload }: any) {
+  const [showUpload, setShowUpload] = useState(false);
+  const [docName, setDocName] = useState("");
+  const [docType, setDocType] = useState("other");
+  const [file, setFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { uploading, setUploading, uploadFile } = useFileUpload();
 
-  useEffect(() => {
-    adminApi.users.list().then(u => setStaff(u.filter(s => !existingIds.includes(s.id)))).catch(() => {});
-  }, []);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setSaving(true);
+  async function handleUpload() {
+    if (!file || !docName.trim()) return;
+    setUploading(true);
     try {
-      await adminApi.projects.assign(projectId, parseInt(userId), roleLabel);
-      await onSave();
-    } catch (err: any) {
-      setError(err.message ?? "Failed");
-    } finally {
-      setSaving(false);
-    }
+      const objectPath = await uploadFile(file);
+      await adminApi.documents.upload(project.id, { name: docName, url: objectPath, type: docType });
+      setFile(null); setDocName(""); setDocType("other");
+      if (fileRef.current) fileRef.current.value = "";
+      setShowUpload(false);
+      onReload();
+    } catch (e: any) { alert(e.message); }
+    finally { setUploading(false); }
   }
 
+  async function handleApprove(doc: ProjectDocument) {
+    try { await adminApi.documents.approve(doc.id); onReload(); } catch (e: any) { alert(e.message); }
+  }
+
+  async function handleDelete(doc: ProjectDocument) {
+    if (!confirm("Delete this document?")) return;
+    try { await adminApi.documents.delete(doc.id); onReload(); } catch (e: any) { alert(e.message); }
+  }
+
+  const documents: ProjectDocument[] = project.documents;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Assign Team Member</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <button onClick={() => setShowUpload(v => !v)} className="bg-[hsl(352,83%,50%)] text-white px-4 py-2 rounded-lg text-sm hover:opacity-90">
+          {showUpload ? "Cancel" : "+ Upload Document"}
+        </button>
+      </div>
+
+      {showUpload && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+          <h3 className="font-medium text-gray-900">Upload Document</h3>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">File *</label>
+            <input ref={fileRef} type="file" onChange={e => setFile(e.target.files?.[0] ?? null)}
+              className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-gray-100 file:text-sm file:text-gray-700 hover:file:bg-gray-200" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Document Name *</label>
+              <input placeholder="e.g. Foundation Contract" value={docName} onChange={e => setDocName(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Type</label>
+              <select value={docType} onChange={e => setDocType(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                {DOC_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+              </select>
+            </div>
+          </div>
+          <button onClick={handleUpload} disabled={uploading || !file || !docName.trim()}
+            className="bg-[hsl(352,83%,50%)] text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-50">
+            {uploading ? "Uploading…" : "Upload"}
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Staff Member *</label>
-            <select value={userId} onChange={e => setUserId(e.target.value)} required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
-              <option value="">Select member…</option>
-              {staff.map(s => (
-                <option key={s.id} value={s.id}>{s.name} — {ROLE_LABELS[s.role as keyof typeof ROLE_LABELS]}</option>
-              ))}
-            </select>
-            {staff.length === 0 && <p className="text-xs text-gray-400 mt-1">All staff are already assigned.</p>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Project Role / Responsibility *</label>
-            <input
-              value={roleLabel}
-              onChange={e => setRoleLabel(e.target.value)}
-              required
-              placeholder="e.g. Lead Engineer, Site Supervisor"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
-          {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-          <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600">Cancel</button>
-            <button type="submit" disabled={saving || staff.length === 0}
-              className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium disabled:opacity-50">
-              {saving ? "Assigning…" : "Assign"}
-            </button>
-          </div>
-        </form>
+      )}
+
+      {documents.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-400">No documents uploaded yet.</div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+          {documents.map((doc: ProjectDocument) => (
+            <div key={doc.id} className="flex items-center gap-4 p-4">
+              <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                  <polyline points="14,2 14,8 20,8" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm text-gray-900 truncate">{doc.name}</p>
+                <p className="text-xs text-gray-400">{doc.type} · {fmt(doc.uploadedAt)}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${doc.status === "approved" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                  {doc.status}
+                </span>
+                <a href={getFileUrl(doc.url)} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline">Download</a>
+                {isSuperAdmin && doc.status === "pending" && (
+                  <button onClick={() => handleApprove(doc)} className="text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">Approve</button>
+                )}
+                {canFullAccess && (
+                  <button onClick={() => handleDelete(doc)} className="text-gray-300 hover:text-red-400 text-lg">×</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PHOTOS TAB ────────────────────────────────────────────────────────────────
+function PhotosTab({ project, isSuperAdmin, canFullAccess, onReload }: any) {
+  const [showUpload, setShowUpload] = useState(false);
+  const [caption, setCaption] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { uploading, setUploading, uploadFile } = useFileUpload();
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    setFile(f);
+    if (f) setPreview(URL.createObjectURL(f));
+    else setPreview(null);
+  }
+
+  async function handleUpload() {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const objectPath = await uploadFile(file);
+      await adminApi.photos.upload(project.id, { url: objectPath, caption: caption || undefined });
+      setFile(null); setCaption(""); setPreview(null);
+      if (fileRef.current) fileRef.current.value = "";
+      setShowUpload(false);
+      onReload();
+    } catch (e: any) { alert(e.message); }
+    finally { setUploading(false); }
+  }
+
+  async function handleApprove(photo: ProjectPhoto) {
+    try { await adminApi.photos.approve(photo.id); onReload(); } catch (e: any) { alert(e.message); }
+  }
+
+  async function handleDelete(photo: ProjectPhoto) {
+    if (!confirm("Delete this photo?")) return;
+    try { await adminApi.photos.delete(photo.id); onReload(); } catch (e: any) { alert(e.message); }
+  }
+
+  const photos: ProjectPhoto[] = project.photos;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <button onClick={() => setShowUpload(v => !v)} className="bg-[hsl(352,83%,50%)] text-white px-4 py-2 rounded-lg text-sm hover:opacity-90">
+          {showUpload ? "Cancel" : "+ Upload Photo"}
+        </button>
       </div>
+
+      {showUpload && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+          <h3 className="font-medium text-gray-900">Upload Progress Photo</h3>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Image File *</label>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange}
+              className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-gray-100 file:text-sm file:text-gray-700 hover:file:bg-gray-200" />
+          </div>
+          {preview && (
+            <img src={preview} alt="Preview" className="max-h-40 rounded-lg object-cover border border-gray-200" />
+          )}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Caption (optional)</label>
+            <input placeholder="e.g. Foundation work complete — Feb 2025" value={caption} onChange={e => setCaption(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <button onClick={handleUpload} disabled={uploading || !file}
+            className="bg-[hsl(352,83%,50%)] text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-50">
+            {uploading ? "Uploading…" : "Upload"}
+          </button>
+        </div>
+      )}
+
+      {photos.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-400">No photos uploaded yet.</div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          {photos.map((photo: ProjectPhoto) => (
+            <div key={photo.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="relative">
+                <img
+                  src={getFileUrl(photo.url)}
+                  alt={photo.caption ?? "Progress photo"}
+                  className="w-full h-48 object-cover"
+                  onError={e => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='80'%3E%3Crect fill='%23f3f4f6' width='100%25' height='100%25'/%3E%3Ctext fill='%239ca3af' font-size='12' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3EImage%3C/text%3E%3C/svg%3E"; }}
+                />
+                <div className="absolute top-2 right-2 flex gap-1">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${photo.status === "approved" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                    {photo.status}
+                  </span>
+                </div>
+              </div>
+              <div className="p-3">
+                {photo.caption && <p className="text-sm text-gray-700 mb-1">{photo.caption}</p>}
+                <p className="text-xs text-gray-400">{fmt(photo.uploadedAt)}</p>
+                <div className="flex gap-2 mt-2">
+                  <a href={getFileUrl(photo.url)} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">View</a>
+                  {isSuperAdmin && photo.status === "pending" && (
+                    <button onClick={() => handleApprove(photo)} className="text-xs text-green-600 hover:underline">Approve</button>
+                  )}
+                  {canFullAccess && (
+                    <button onClick={() => handleDelete(photo)} className="text-xs text-red-400 hover:underline">Delete</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PAYMENTS TAB ──────────────────────────────────────────────────────────────
+function PaymentsTab({ project, isSuperAdmin, canManagePayments, canFullAccess, onReload }: any) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ label: "", amount: "", status: "pending", dueDate: "" });
+  const [saving, setSaving] = useState(false);
+
+  const payments: Payment[] = project.payments;
+  const total = payments.reduce((s, p) => s + parseFloat(p.amount), 0);
+  const paid = payments.filter(p => p.status === "paid").reduce((s, p) => s + parseFloat(p.amount), 0);
+  const pending = payments.filter(p => p.status === "pending").reduce((s, p) => s + parseFloat(p.amount), 0);
+  const overdue = payments.filter(p => p.status === "overdue").reduce((s, p) => s + parseFloat(p.amount), 0);
+
+  async function handleAdd() {
+    if (!form.label.trim() || !form.amount) return;
+    setSaving(true);
+    try {
+      await adminApi.payments.create(project.id, {
+        label: form.label, amount: form.amount, status: form.status, dueDate: form.dueDate || undefined,
+      });
+      setForm({ label: "", amount: "", status: "pending", dueDate: "" });
+      setShowAdd(false); onReload();
+    } catch (e: any) { alert(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function markPaid(p: Payment) {
+    try { await adminApi.payments.update(p.id, { status: "paid", paidAt: new Date().toISOString() }); onReload(); }
+    catch (e: any) { alert(e.message); }
+  }
+
+  async function markOverdue(p: Payment) {
+    try { await adminApi.payments.update(p.id, { status: "overdue" }); onReload(); }
+    catch (e: any) { alert(e.message); }
+  }
+
+  async function handleDelete(p: Payment) {
+    if (!confirm("Delete this billing record?")) return;
+    try { await adminApi.payments.delete(p.id); onReload(); } catch (e: any) { alert(e.message); }
+  }
+
+  const fmtAmt = (n: number) => `Rs. ${n.toLocaleString("en-IN", { minimumFractionDigits: 0 })}`;
+
+  return (
+    <div className="space-y-4">
+      {/* Summary */}
+      {payments.length > 0 && (
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            { label: "Total", val: fmtAmt(total), color: "text-gray-900" },
+            { label: "Paid", val: fmtAmt(paid), color: "text-green-600" },
+            { label: "Pending", val: fmtAmt(pending), color: "text-yellow-600" },
+            { label: "Overdue", val: fmtAmt(overdue), color: "text-red-600" },
+          ].map(item => (
+            <div key={item.label} className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+              <div className={`text-lg font-bold ${item.color}`}>{item.val}</div>
+              <div className="text-xs text-gray-500 mt-1">{item.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {canManagePayments && (
+        <div className="flex justify-end">
+          <button onClick={() => setShowAdd(v => !v)} className="bg-[hsl(352,83%,50%)] text-white px-4 py-2 rounded-lg text-sm hover:opacity-90">
+            {showAdd ? "Cancel" : "+ Add Billing Record"}
+          </button>
+        </div>
+      )}
+
+      {showAdd && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+          <h3 className="font-medium text-gray-900">New Billing Record</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Label *</label>
+              <input placeholder="e.g. Foundation Work Invoice" value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Amount (Rs.) *</label>
+              <input type="number" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Status</label>
+              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Due Date</label>
+              <input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+            </div>
+          </div>
+          <button onClick={handleAdd} disabled={saving || !form.label.trim() || !form.amount}
+            className="bg-[hsl(352,83%,50%)] text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-50">
+            {saving ? "Adding…" : "Add Record"}
+          </button>
+        </div>
+      )}
+
+      {payments.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-400">No billing records yet.</div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+          {payments.map((p: Payment) => (
+            <div key={p.id} className="flex items-center gap-4 p-4">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm text-gray-900">{p.label}</p>
+                <div className="flex gap-3 text-xs text-gray-400 mt-0.5">
+                  {p.dueDate && <span>Due: {fmt(p.dueDate)}</span>}
+                  {p.paidAt && <span>Paid: {fmt(p.paidAt)}</span>}
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold text-gray-900">{fmtAmt(parseFloat(p.amount))}</p>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PAYMENT_STATUS_COLORS[p.status]}`}>{p.status}</span>
+              </div>
+              {canFullAccess && (
+                <div className="flex gap-2 ml-2">
+                  {p.status === "pending" && (
+                    <>
+                      <button onClick={() => markPaid(p)} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200">Mark Paid</button>
+                      <button onClick={() => markOverdue(p)} className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">Overdue</button>
+                    </>
+                  )}
+                  <button onClick={() => handleDelete(p)} className="text-gray-300 hover:text-red-400 text-lg">×</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── UPDATES TAB ───────────────────────────────────────────────────────────────
+function UpdatesTab({ project, onReload }: any) {
+  const [message, setMessage] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  async function handlePost() {
+    if (!message.trim()) return;
+    setPosting(true);
+    try {
+      await adminApi.projects.addUpdate(project.id, message.trim());
+      setMessage(""); onReload();
+    } catch (e: any) { alert(e.message); }
+    finally { setPosting(false); }
+  }
+
+  const updates = [...(project.updates ?? [])].reverse();
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <textarea
+          placeholder="Post a project update…"
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm h-24 resize-none mb-3"
+        />
+        <button onClick={handlePost} disabled={posting || !message.trim()}
+          className="bg-[hsl(352,83%,50%)] text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-50">
+          {posting ? "Posting…" : "Post Update"}
+        </button>
+      </div>
+
+      {updates.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-400">No updates yet.</div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+          {updates.map((u: any) => (
+            <div key={u.id} className="p-4">
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">{u.message}</p>
+              <p className="text-xs text-gray-400 mt-1">{fmt(u.postedAt)}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

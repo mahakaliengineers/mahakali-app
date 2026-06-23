@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import {
   projectsTable, usersTable, projectAssignmentsTable,
-  milestonesTable, paymentsTable, updatesTable,
+  milestonesTable, paymentsTable, updatesTable, photosTable, documentsTable,
 } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
@@ -134,11 +134,13 @@ router.get("/staff/projects/:id", requireStaff, async (req: any, res) => {
   const milestones = await db.select().from(milestonesTable).where(eq(milestonesTable.projectId, id)).orderBy(milestonesTable.order);
   const payments = await db.select().from(paymentsTable).where(eq(paymentsTable.projectId, id)).orderBy(paymentsTable.createdAt);
   const updates = await db.select().from(updatesTable).where(eq(updatesTable.projectId, id)).orderBy(updatesTable.postedAt);
+  const photos = await db.select().from(photosTable).where(eq(photosTable.projectId, id)).orderBy(photosTable.uploadedAt);
+  const documents = await db.select().from(documentsTable).where(eq(documentsTable.projectId, id)).orderBy(documentsTable.uploadedAt);
 
   res.json({
     ...project,
     client: client ? { id: client.id, name: client.name, email: client.email, phone: client.phone } : null,
-    assignments, milestones, payments, updates,
+    assignments, milestones, payments, updates, photos, documents,
   });
 });
 
