@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { adminApi, type ClientUser } from "@/lib/admin-api";
 
+function validatePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length > 10) return "Phone number must not exceed 10 digits";
+  return "";
+}
+
 export default function AdminClients() {
   const [clients, setClients] = useState<ClientUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,10 +171,19 @@ function ClientFormModal({
   const [clientNumber, setClientNumber] = useState(initial?.clientNumber ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+
+  function handlePhoneChange(val: string) {
+    const digitsOnly = val.replace(/\D/g, "").slice(0, 10);
+    setPhone(digitsOnly);
+    setPhoneError("");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    const pErr = phone ? validatePhone(phone) : "";
+    if (pErr) { setPhoneError(pErr); return; }
     setSaving(true);
     try {
       await onSave({
@@ -211,9 +226,16 @@ function ClientFormModal({
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
-              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Phone (max 10 digits)</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={e => handlePhoneChange(e.target.value)}
+                maxLength={10}
+                placeholder="e.g. 9851234567"
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${phoneError ? "border-red-400" : "border-gray-300"}`}
+              />
+              {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">

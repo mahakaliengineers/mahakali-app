@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { adminApi, type StaffUser, ROLE_LABELS } from "@/lib/admin-api";
 
@@ -37,7 +37,7 @@ const navItems = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ),
-    roles: ["super_admin", "admin"],
+    roles: ["super_admin", "admin", "project_manager"],
   },
   {
     href: "/admin/users",
@@ -51,9 +51,87 @@ const navItems = [
   },
 ];
 
+function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (newPassword !== confirmPassword) { setError("New passwords do not match"); return; }
+    if (newPassword.length < 6) { setError("New password must be at least 6 characters"); return; }
+    setSaving(true);
+    try {
+      await adminApi.auth.updatePassword(currentPassword, newPassword);
+      setSuccess(true);
+      setTimeout(onClose, 1500);
+    } catch (err: any) {
+      setError(err.message ?? "Failed to update password");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-900">Change Password</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        {success ? (
+          <div className="px-6 py-8 text-center">
+            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-gray-900">Password updated successfully!</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Current Password *</label>
+              <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">New Password *</label>
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Confirm New Password *</label>
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+            </div>
+            {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+              <button type="submit" disabled={saving}
+                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium disabled:opacity-50">
+                {saving ? "Updating…" : "Update Password"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminLayout({ children, user, onLogout }: Props) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   const visibleNav = navItems.filter(item => item.roles.includes(user.role));
 
@@ -91,7 +169,7 @@ export default function AdminLayout({ children, user, onLogout }: Props) {
         </nav>
 
         <div className="px-3 py-4 border-t border-gray-700">
-          <div className="flex items-center gap-3 px-3 py-2 mb-2">
+          <div className="flex items-center gap-3 px-3 py-2 mb-1">
             <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
               {user.name.charAt(0).toUpperCase()}
             </div>
@@ -100,6 +178,15 @@ export default function AdminLayout({ children, user, onLogout }: Props) {
               <p className="text-xs text-gray-400">{ROLE_LABELS[user.role]}</p>
             </div>
           </div>
+          <button
+            onClick={() => { setShowChangePassword(true); setMobileOpen(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+            Change Password
+          </button>
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
@@ -131,6 +218,10 @@ export default function AdminLayout({ children, user, onLogout }: Props) {
           {children}
         </main>
       </div>
+
+      {showChangePassword && (
+        <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+      )}
     </div>
   );
 }

@@ -76,6 +76,11 @@ export const adminApi = {
       req<StaffUser>("/staff/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
     logout: () => req<{ ok: boolean }>("/staff/auth/logout", { method: "POST" }),
     me: () => req<StaffUser>("/staff/auth/me"),
+    updatePassword: (currentPassword: string, newPassword: string) =>
+      req<{ ok: boolean }>("/staff/auth/password", {
+        method: "PATCH",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      }),
   },
   users: {
     list: () => req<StaffUser[]>("/staff/users"),

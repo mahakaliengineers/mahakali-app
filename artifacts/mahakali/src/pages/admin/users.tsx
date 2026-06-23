@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { adminApi, type StaffUser, type StaffRole, ROLE_LABELS, ROLE_COLORS } from "@/lib/admin-api";
 
-const ALL_STAFF_ROLES: StaffRole[] = ["super_admin", "admin", "project_manager", "engineer", "site_engineer"];
+// super_admin cannot be assigned to anyone else — only 1 can exist in the system
+const ASSIGNABLE_ROLES: StaffRole[] = ["admin", "project_manager", "engineer", "site_engineer"];
+
+function validatePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length > 10) return "Phone number must not exceed 10 digits";
+  return "";
+}
 
 export default function AdminUsers({ currentUser }: { currentUser: StaffUser }) {
   const [users, setUsers] = useState<StaffUser[]>([]);
@@ -23,8 +30,12 @@ export default function AdminUsers({ currentUser }: { currentUser: StaffUser }) 
 
   async function handleDelete(id: number) {
     if (!confirm("Delete this user? This cannot be undone.")) return;
-    await adminApi.users.delete(id);
-    await load();
+    try {
+      await adminApi.users.delete(id);
+      await load();
+    } catch (err: any) {
+      alert(err.message ?? "Failed to delete user");
+    }
   }
 
   return (
@@ -44,6 +55,8 @@ export default function AdminUsers({ currentUser }: { currentUser: StaffUser }) 
           Add Staff
         </button>
       </div>
+
+      {error && <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-lg">{error}</p>}
 
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse space-y-3">
@@ -86,7 +99,7 @@ export default function AdminUsers({ currentUser }: { currentUser: StaffUser }) 
                         onClick={() => setEditUser(u)}
                         className="text-xs text-blue-600 hover:underline font-medium"
                       >Edit</button>
-                      {u.id !== currentUser.id && (
+                      {u.id !== currentUser.id && u.role !== "super_admin" && (
                         <button
                           onClick={() => handleDelete(u.id)}
                           className="text-xs text-red-600 hover:underline font-medium"
@@ -151,15 +164,27 @@ function UserFormModal({
 }) {
   const [name, setName] = useState(initialUser?.name ?? "");
   const [email, setEmail] = useState(initialUser?.email ?? "");
-  const [role, setRole] = useState<StaffRole>(initialUser?.role ?? "engineer");
+  const [role, setRole] = useState<StaffRole>(
+    initialUser?.role === "super_admin" ? "admin" : (initialUser?.role ?? "engineer")
+  );
   const [phone, setPhone] = useState(initialUser?.phone ?? "");
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+
+  function handlePhoneChange(val: string) {
+    // Allow only digits
+    const digitsOnly = val.replace(/\D/g, "").slice(0, 10);
+    setPhone(digitsOnly);
+    setPhoneError(digitsOnly.length === 10 ? "" : "");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    const pErr = phone ? validatePhone(phone) : "";
+    if (pErr) { setPhoneError(pErr); return; }
     setSaving(true);
     try {
       await onSave({ name, email, role, phone: phone || undefined, password: password || undefined });
@@ -196,14 +221,29 @@ function UserFormModal({
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
               <select value={role} onChange={e => setRole(e.target.value as StaffRole)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
-                {ALL_STAFF_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                disabled={initialUser?.role === "super_admin"}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-50 disabled:text-gray-400">
+                {initialUser?.role === "super_admin" ? (
+                  <option value="super_admin">Super Admin</option>
+                ) : (
+                  ASSIGNABLE_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)
+                )}
               </select>
+              {initialUser?.role === "super_admin" && (
+                <p className="text-xs text-gray-400 mt-1">Super Admin role cannot be changed</p>
+              )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
-              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Phone (max 10 digits)</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={e => handlePhoneChange(e.target.value)}
+                maxLength={10}
+                placeholder="e.g. 9851234567"
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${phoneError ? "border-red-400" : "border-gray-300"}`}
+              />
+              {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">

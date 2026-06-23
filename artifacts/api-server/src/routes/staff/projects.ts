@@ -9,8 +9,12 @@ import { eq, and, inArray } from "drizzle-orm";
 const router = Router();
 
 const STAFF_ROLES = ["super_admin", "admin", "engineer", "site_engineer", "project_manager"] as const;
-const MANAGE_ROLES = ["super_admin", "admin"] as const;
-const UPDATE_ROLES = ["super_admin", "admin", "project_manager"] as const;
+// Full access: create/delete projects
+const FULL_ACCESS_ROLES = ["super_admin", "admin"] as const;
+// Broad access: see ALL projects, manage team assignments
+const BROAD_ROLES = ["super_admin", "admin", "project_manager"] as const;
+// Update roles: can update project details (engineer/site_engineer only on assigned projects)
+const UPDATE_ROLES = ["super_admin", "admin", "project_manager", "engineer", "site_engineer"] as const;
 
 async function getStaffUser(userId: number) {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
@@ -27,11 +31,22 @@ function requireStaff(req: any, res: any, next: any) {
   }).catch(next);
 }
 
-function requireManage(req: any, res: any, next: any) {
+function requireFullAccess(req: any, res: any, next: any) {
   if (!req.session?.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
   getStaffUser(req.session.userId).then((user) => {
-    if (!user || !(MANAGE_ROLES as readonly string[]).includes(user.role)) {
+    if (!user || !(FULL_ACCESS_ROLES as readonly string[]).includes(user.role)) {
       res.status(403).json({ error: "Admin or Super Admin only" }); return;
+    }
+    req.staffUser = user;
+    next();
+  }).catch(next);
+}
+
+function requireBroadAccess(req: any, res: any, next: any) {
+  if (!req.session?.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+  getStaffUser(req.session.userId).then((user) => {
+    if (!user || !(BROAD_ROLES as readonly string[]).includes(user.role)) {
+      res.status(403).json({ error: "Not authorized to manage team assignments" }); return;
     }
     req.staffUser = user;
     next();
@@ -55,30 +70,31 @@ async function getProjectAssignments(projectId: number) {
   return rows;
 }
 
+// List projects — broad roles see ALL; engineer/site_engineer see only assigned
 router.get("/staff/projects", requireStaff, async (req: any, res) => {
   const user = req.staffUser;
-  let projects: any[];
+  const projectFields = {
+    id: projectsTable.id,
+    clientId: projectsTable.clientId,
+    clientName: usersTable.name,
+    title: projectsTable.title,
+    location: projectsTable.location,
+    type: projectsTable.type,
+    status: projectsTable.status,
+    progress: projectsTable.progress,
+    description: projectsTable.description,
+    startDate: projectsTable.startDate,
+    endDate: projectsTable.endDate,
+    createdAt: projectsTable.createdAt,
+  };
 
-  if ((MANAGE_ROLES as readonly string[]).includes(user.role)) {
+  if ((BROAD_ROLES as readonly string[]).includes(user.role)) {
     const rows = await db
-      .select({
-        id: projectsTable.id,
-        clientId: projectsTable.clientId,
-        clientName: usersTable.name,
-        title: projectsTable.title,
-        location: projectsTable.location,
-        type: projectsTable.type,
-        status: projectsTable.status,
-        progress: projectsTable.progress,
-        description: projectsTable.description,
-        startDate: projectsTable.startDate,
-        endDate: projectsTable.endDate,
-        createdAt: projectsTable.createdAt,
-      })
+      .select(projectFields)
       .from(projectsTable)
       .leftJoin(usersTable, eq(projectsTable.clientId, usersTable.id))
       .orderBy(projectsTable.createdAt);
-    projects = rows;
+    res.json(rows);
   } else {
     const assignments = await db
       .select({ projectId: projectAssignmentsTable.projectId })
@@ -87,35 +103,22 @@ router.get("/staff/projects", requireStaff, async (req: any, res) => {
     const projectIds = assignments.map((a: any) => a.projectId);
     if (projectIds.length === 0) { res.json([]); return; }
     const rows = await db
-      .select({
-        id: projectsTable.id,
-        clientId: projectsTable.clientId,
-        clientName: usersTable.name,
-        title: projectsTable.title,
-        location: projectsTable.location,
-        type: projectsTable.type,
-        status: projectsTable.status,
-        progress: projectsTable.progress,
-        description: projectsTable.description,
-        startDate: projectsTable.startDate,
-        endDate: projectsTable.endDate,
-        createdAt: projectsTable.createdAt,
-      })
+      .select(projectFields)
       .from(projectsTable)
       .leftJoin(usersTable, eq(projectsTable.clientId, usersTable.id))
       .where(inArray(projectsTable.id, projectIds))
       .orderBy(projectsTable.createdAt);
-    projects = rows;
+    res.json(rows);
   }
-  res.json(projects);
 });
 
+// Get single project — broad roles see any; engineer/site_engineer must be assigned
 router.get("/staff/projects/:id", requireStaff, async (req: any, res) => {
   const id = parseInt(req.params["id"]!, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const user = req.staffUser;
 
-  if (!(MANAGE_ROLES as readonly string[]).includes(user.role)) {
+  if (!(BROAD_ROLES as readonly string[]).includes(user.role)) {
     const [assignment] = await db
       .select()
       .from(projectAssignmentsTable)
@@ -126,7 +129,6 @@ router.get("/staff/projects/:id", requireStaff, async (req: any, res) => {
 
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id)).limit(1);
   if (!project) { res.status(404).json({ error: "Not found" }); return; }
-
   const [client] = await db.select().from(usersTable).where(eq(usersTable.id, project.clientId)).limit(1);
   const assignments = await getProjectAssignments(id);
   const milestones = await db.select().from(milestonesTable).where(eq(milestonesTable.projectId, id)).orderBy(milestonesTable.order);
@@ -136,14 +138,12 @@ router.get("/staff/projects/:id", requireStaff, async (req: any, res) => {
   res.json({
     ...project,
     client: client ? { id: client.id, name: client.name, email: client.email, phone: client.phone } : null,
-    assignments,
-    milestones,
-    payments,
-    updates,
+    assignments, milestones, payments, updates,
   });
 });
 
-router.post("/staff/projects", requireManage, async (req, res) => {
+// Create project — full access only (super_admin, admin)
+router.post("/staff/projects", requireFullAccess, async (req, res) => {
   const { clientId, title, location, type, status, progress, description, startDate, endDate } = req.body;
   if (!clientId || !title) { res.status(400).json({ error: "clientId and title are required" }); return; }
   const [project] = await db.insert(projectsTable).values({
@@ -160,6 +160,7 @@ router.post("/staff/projects", requireManage, async (req, res) => {
   res.status(201).json(project);
 });
 
+// Update project — all roles can update, but engineer/site_engineer must be assigned
 router.patch("/staff/projects/:id", requireStaff, async (req: any, res) => {
   const id = parseInt(req.params["id"]!, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
@@ -168,7 +169,8 @@ router.patch("/staff/projects/:id", requireStaff, async (req: any, res) => {
   if (!(UPDATE_ROLES as readonly string[]).includes(user.role)) {
     res.status(403).json({ error: "Forbidden" }); return;
   }
-  if (!(MANAGE_ROLES as readonly string[]).includes(user.role)) {
+  // engineer and site_engineer must be assigned to the project
+  if (!(BROAD_ROLES as readonly string[]).includes(user.role)) {
     const [assignment] = await db
       .select()
       .from(projectAssignmentsTable)
@@ -193,14 +195,14 @@ router.patch("/staff/projects/:id", requireStaff, async (req: any, res) => {
   res.json(project);
 });
 
-router.post("/staff/projects/:id/assignments", requireManage, async (req, res) => {
+// Manage team assignments — broad access (super_admin, admin, project_manager)
+router.post("/staff/projects/:id/assignments", requireBroadAccess, async (req, res) => {
   const id = parseInt(req.params["id"]!, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { userId, roleLabel } = req.body;
   if (!userId || !roleLabel) { res.status(400).json({ error: "userId and roleLabel are required" }); return; }
-
   try {
-    const [assignment] = await db.insert(projectAssignmentsTable).values({
+    await db.insert(projectAssignmentsTable).values({
       projectId: id,
       userId: parseInt(userId, 10),
       roleLabel,
@@ -215,7 +217,7 @@ router.post("/staff/projects/:id/assignments", requireManage, async (req, res) =
   }
 });
 
-router.delete("/staff/projects/:id/assignments/:userId", requireManage, async (req, res) => {
+router.delete("/staff/projects/:id/assignments/:userId", requireBroadAccess, async (req, res) => {
   const projectId = parseInt(req.params["id"]!, 10);
   const userId = parseInt(req.params["userId"]!, 10);
   if (isNaN(projectId) || isNaN(userId)) { res.status(400).json({ error: "Invalid id" }); return; }
@@ -224,6 +226,30 @@ router.delete("/staff/projects/:id/assignments/:userId", requireManage, async (r
   );
   const assignments = await getProjectAssignments(projectId);
   res.json(assignments);
+});
+
+// Post a project update — all staff who can update the project
+router.post("/staff/projects/:id/updates", requireStaff, async (req: any, res) => {
+  const id = parseInt(req.params["id"]!, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const user = req.staffUser;
+
+  // Must be assigned if not a broad-access role
+  if (!(BROAD_ROLES as readonly string[]).includes(user.role)) {
+    const [assignment] = await db
+      .select()
+      .from(projectAssignmentsTable)
+      .where(and(eq(projectAssignmentsTable.projectId, id), eq(projectAssignmentsTable.userId, user.id)))
+      .limit(1);
+    if (!assignment) { res.status(403).json({ error: "Not assigned to this project" }); return; }
+  }
+
+  const { content, message } = req.body;
+  const text = (content ?? message ?? "").trim();
+  if (!text) { res.status(400).json({ error: "Update message is required" }); return; }
+
+  const [update] = await db.insert(updatesTable).values({ projectId: id, message: text }).returning();
+  res.status(201).json(update);
 });
 
 export default router;

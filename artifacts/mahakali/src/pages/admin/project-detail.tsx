@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { adminApi, type StaffUser, type StaffProjectDetail, type ProjectAssignment, ROLE_LABELS, ROLE_COLORS } from "@/lib/admin-api";
+import { adminApi, type StaffUser, type StaffProjectDetail, ROLE_LABELS, ROLE_COLORS } from "@/lib/admin-api";
 
 const STATUS_COLORS: Record<string, string> = {
   planning: "bg-yellow-100 text-yellow-700",
@@ -18,9 +18,16 @@ export default function AdminProjectDetail({ projectId, user }: { projectId: num
   const [editProgress, setEditProgress] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("");
+  const [showAddUpdate, setShowAddUpdate] = useState(false);
+  const [updateText, setUpdateText] = useState("");
+  const [postingUpdate, setPostingUpdate] = useState(false);
 
-  const canManage = user.role === "super_admin" || user.role === "admin";
-  const canUpdate = canManage || user.role === "project_manager";
+  // super_admin + admin: full control (create project, delete, manage clients, see everything)
+  const canFullAccess = user.role === "super_admin" || user.role === "admin";
+  // super_admin + admin + project_manager: manage team assignments
+  const canAssign = canFullAccess || user.role === "project_manager";
+  // all roles: can update project details (engineers must be assigned — enforced server-side)
+  const canUpdate = true;
 
   async function load() {
     setLoading(true);
@@ -95,6 +102,12 @@ export default function AdminProjectDetail({ projectId, user }: { projectId: num
             {project.location && <span className="text-sm text-gray-400">· {project.location}</span>}
           </div>
         </div>
+        {/* Role badge */}
+        <div className="flex-shrink-0">
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${ROLE_COLORS[user.role]}`}>
+            {ROLE_LABELS[user.role]}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -158,11 +171,11 @@ export default function AdminProjectDetail({ projectId, user }: { projectId: num
         </div>
       </div>
 
-      {/* Team Assignments */}
+      {/* Team Assignments — visible to all, manageable only by canAssign roles */}
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">Project Team</h2>
-          {canManage && (
+          {canAssign && (
             <button
               onClick={() => setShowAssign(true)}
               className="flex items-center gap-1.5 text-xs bg-red-600 hover:bg-red-700 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
@@ -196,7 +209,7 @@ export default function AdminProjectDetail({ projectId, user }: { projectId: num
                     </span>
                   )}
                   <span className="text-xs text-gray-400 hidden sm:block">{a.roleLabel}</span>
-                  {canManage && (
+                  {canAssign && (
                     <button onClick={() => handleRemoveAssignment(a.userId)} className="text-xs text-red-500 hover:underline">Remove</button>
                   )}
                 </div>
@@ -207,11 +220,13 @@ export default function AdminProjectDetail({ projectId, user }: { projectId: num
       </div>
 
       {/* Milestones */}
-      {project.milestones.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Milestones</h2>
-          </div>
+      <div className="bg-white rounded-xl border border-gray-200">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-900">Milestones</h2>
+        </div>
+        {project.milestones.length === 0 ? (
+          <div className="p-6 text-center text-gray-400 text-sm">No milestones defined yet.</div>
+        ) : (
           <div className="divide-y divide-gray-50">
             {project.milestones.map((m: any) => (
               <div key={m.id} className="flex items-center gap-3 px-5 py-3">
@@ -229,25 +244,75 @@ export default function AdminProjectDetail({ projectId, user }: { projectId: num
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Recent Updates */}
-      {project.updates.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Recent Updates</h2>
+      {/* Project Updates */}
+      <div className="bg-white rounded-xl border border-gray-200">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-900">Project Updates</h2>
+          {canUpdate && (
+            <button
+              onClick={() => setShowAddUpdate(v => !v)}
+              className="text-xs text-red-600 hover:underline font-medium"
+            >
+              {showAddUpdate ? "Cancel" : "+ Add Update"}
+            </button>
+          )}
+        </div>
+        {showAddUpdate && (
+          <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
+            <textarea
+              value={updateText}
+              onChange={e => setUpdateText(e.target.value)}
+              rows={3}
+              placeholder="Describe the latest progress, issues, or notes…"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <button onClick={() => { setShowAddUpdate(false); setUpdateText(""); }}
+                className="px-3 py-1.5 text-xs text-gray-600">Cancel</button>
+              <button
+                disabled={!updateText.trim() || postingUpdate}
+                onClick={async () => {
+                  if (!updateText.trim()) return;
+                  setPostingUpdate(true);
+                  try {
+                    await fetch(`/api/staff/projects/${projectId}/updates`, {
+                      method: "POST",
+                      credentials: "include",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ content: updateText.trim() }),
+                    });
+                    setUpdateText("");
+                    setShowAddUpdate(false);
+                    await load();
+                  } catch {
+                    alert("Failed to post update");
+                  } finally {
+                    setPostingUpdate(false);
+                  }
+                }}
+                className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium disabled:opacity-50"
+              >
+                {postingUpdate ? "Posting…" : "Post Update"}
+              </button>
+            </div>
           </div>
+        )}
+        {project.updates.length === 0 ? (
+          <div className="p-6 text-center text-gray-400 text-sm">No updates posted yet.</div>
+        ) : (
           <div className="divide-y divide-gray-50">
-            {project.updates.slice(-5).reverse().map((u: any) => (
+            {[...project.updates].reverse().slice(0, 10).map((u: any) => (
               <div key={u.id} className="px-5 py-3">
                 <p className="text-sm text-gray-700">{u.content ?? u.message}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{new Date(u.postedAt).toLocaleDateString()}</p>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {showAssign && (
         <AssignModal
