@@ -103,8 +103,8 @@ export default function AdminProjects({ user }: { user: StaffUser }) {
                     </div>
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <Link href={`/admin/projects/${p.id}`}>
-                      <a className="text-xs text-red-600 hover:underline font-medium">View →</a>
+                    <Link href={`/admin/projects/${p.id}`} className="text-xs text-red-600 hover:underline font-medium">
+                      View →
                     </Link>
                   </td>
                 </tr>

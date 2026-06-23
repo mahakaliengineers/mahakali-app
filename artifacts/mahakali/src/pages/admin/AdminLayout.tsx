@@ -77,14 +77,14 @@ export default function AdminLayout({ children, user, onLogout }: Props) {
           {visibleNav.map(item => {
             const active = location === item.href || (item.href !== "/admin" && location.startsWith(item.href));
             return (
-              <Link key={item.href} href={item.href}>
-                <a
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? "bg-red-600 text-white" : "text-gray-300 hover:bg-gray-800 hover:text-white"}`}
-                >
-                  {item.icon}
-                  {item.label}
-                </a>
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? "bg-red-600 text-white" : "text-gray-300 hover:bg-gray-800 hover:text-white"}`}
+              >
+                {item.icon}
+                {item.label}
               </Link>
             );
           })}

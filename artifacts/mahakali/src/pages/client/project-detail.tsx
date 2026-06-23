@@ -97,20 +97,18 @@ export default function ClientProjectDetail({ projectId }: { projectId: number }
   if (error || !project) return (
     <div className="text-center py-16">
       <p className="text-red-600 font-medium">{error || "Project not found"}</p>
-      <Link href="/client"><a className="text-sm text-gray-400 hover:underline mt-2 block">← Back to dashboard</a></Link>
+      <Link href="/client" className="text-sm text-gray-400 hover:underline mt-2 block">← Back to dashboard</Link>
     </div>
   );
 
   return (
     <div className="space-y-5 max-w-4xl">
       <div>
-        <Link href="/client">
-          <a className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-2">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            My Projects
-          </a>
+        <Link href="/client" className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-2">
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          My Projects
         </Link>
         <div className="flex items-start justify-between gap-3">
           <div>

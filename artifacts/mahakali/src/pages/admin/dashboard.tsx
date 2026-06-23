@@ -64,8 +64,8 @@ export default function AdminDashboard({ user }: { user: StaffUser }) {
           <h2 className="font-semibold text-gray-900">
             {user.role === "super_admin" || user.role === "admin" ? "Recent Projects" : "My Assigned Projects"}
           </h2>
-          <Link href="/admin/projects">
-            <a className="text-sm text-red-600 hover:underline font-medium">View all →</a>
+          <Link href="/admin/projects" className="text-sm text-red-600 hover:underline font-medium">
+            View all →
           </Link>
         </div>
         {loading ? (
@@ -77,22 +77,20 @@ export default function AdminDashboard({ user }: { user: StaffUser }) {
         ) : (
           <div className="divide-y divide-gray-50">
             {projects.slice(0, 5).map(p => (
-              <Link key={p.id} href={`/admin/projects/${p.id}`}>
-                <a className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{p.title}</p>
-                    <p className="text-xs text-gray-400 truncate">{p.clientName ?? "No client"} {p.location ? `· ${p.location}` : ""}</p>
+              <Link key={p.id} href={`/admin/projects/${p.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{p.title}</p>
+                  <p className="text-xs text-gray-400 truncate">{p.clientName ?? "No client"} {p.location ? `· ${p.location}` : ""}</p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                  <div className="hidden sm:block w-24 bg-gray-100 rounded-full h-2">
+                    <div className="bg-red-500 h-2 rounded-full" style={{ width: `${p.progress}%` }} />
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-                    <div className="hidden sm:block w-24 bg-gray-100 rounded-full h-2">
-                      <div className="bg-red-500 h-2 rounded-full" style={{ width: `${p.progress}%` }} />
-                    </div>
-                    <span className="text-xs text-gray-500 hidden sm:block">{p.progress}%</span>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor[p.status] ?? "bg-gray-100 text-gray-600"}`}>
-                      {p.status.replace("_", " ")}
-                    </span>
-                  </div>
-                </a>
+                  <span className="text-xs text-gray-500 hidden sm:block">{p.progress}%</span>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                    {p.status.replace("_", " ")}
+                  </span>
+                </div>
               </Link>
             ))}
           </div>

@@ -70,7 +70,7 @@ export default function AdminProjectDetail({ projectId, user }: { projectId: num
   if (error) return (
     <div className="text-center py-16 text-red-600">
       <p className="font-medium">{error}</p>
-      <Link href="/admin/projects"><a className="text-sm text-gray-500 hover:underline mt-2 block">← Back to projects</a></Link>
+      <Link href="/admin/projects" className="text-sm text-gray-500 hover:underline mt-2 block">← Back to projects</Link>
     </div>
   );
 
@@ -80,13 +80,11 @@ export default function AdminProjectDetail({ projectId, user }: { projectId: num
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Link href="/admin/projects">
-            <a className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-2">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Projects
-            </a>
+          <Link href="/admin/projects" className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-2">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Projects
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
