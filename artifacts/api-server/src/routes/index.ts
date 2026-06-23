@@ -9,6 +9,9 @@ import adminProjectsRouter from "./admin/projects";
 import adminResourcesRouter from "./admin/resources";
 import adminStorageRouter from "./admin/storage";
 import adminUsersRouter from "./admin/users";
+import staffAuthRouter from "./staff/auth";
+import staffUsersRouter from "./staff/users";
+import staffProjectsRouter from "./staff/projects";
 
 const router: IRouter = Router();
 
@@ -22,5 +25,8 @@ router.use(adminProjectsRouter);
 router.use(adminResourcesRouter);
 router.use(adminStorageRouter);
 router.use(adminUsersRouter);
+router.use(staffAuthRouter);
+router.use(staffUsersRouter);
+router.use(staffProjectsRouter);
 
 export default router;
