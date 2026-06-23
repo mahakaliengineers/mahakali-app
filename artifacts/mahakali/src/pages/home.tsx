@@ -984,9 +984,27 @@ function ContactForm() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface PublicStats { total: number; completed: number; active: number; clients: number; }
+interface FeaturedProject { id: number; title: string; location: string; type: string; status: string; progress: number; description: string | null; }
+
+const FALLBACK_STATS: PublicStats = { total: 450, completed: 418, active: 32, clients: 0 };
+const FALLBACK_PROJECTS: Array<{ img: string; title: string; category: string; location: string }> = [
+  { img: project1Img, title: "Bagmati Commercial Tower", category: "Commercial", location: "Kathmandu, Nepal" },
+  { img: project2Img, title: "Trishuli River Bridge", category: "Infrastructure", location: "Nuwakot, Nepal" },
+  { img: project3Img, title: "Hetauda Industrial Complex", category: "Industrial", location: "Hetauda, Nepal" },
+];
+const PROJECT_IMGS = [project1Img, project2Img, project3Img];
+
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [stats, setStats] = useState<PublicStats | null>(null);
+  const [featuredProjects, setFeaturedProjects] = useState<FeaturedProject[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/public/stats").then(r => r.json()).then(setStats).catch(() => {});
+    fetch("/api/public/projects").then(r => r.json()).then(setFeaturedProjects).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -1110,15 +1128,18 @@ export default function Home() {
       <section className="bg-secondary text-white py-12 relative z-30 -mt-10 mx-6 md:mx-12 lg:mx-24 shadow-2xl border-b-4 border-primary">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-white/10 text-center">
-            {[
-              { label: "Years Experience", value: "25", suffix: "+" },
-              { label: "Projects Completed", value: "450", suffix: "+" },
-              { label: "Active Sites", value: "32", suffix: "" },
-              { label: "Skilled Professionals", value: "1200", suffix: "+" }
-            ].map((stat, i) => (
+            {(() => {
+              const s = stats ?? FALLBACK_STATS;
+              return [
+                { label: "Years Experience", value: 25, suffix: "+" },
+                { label: "Projects Completed", value: s.completed > 0 ? s.completed : FALLBACK_STATS.completed, suffix: "+" },
+                { label: "Active Sites", value: s.active > 0 ? s.active : FALLBACK_STATS.active, suffix: "" },
+                { label: "Clients Served", value: s.clients > 0 ? s.clients : 1200, suffix: "+" },
+              ];
+            })().map((stat, i) => (
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={FADE_UP} className="flex flex-col gap-1 px-4">
                 <div className="text-4xl md:text-5xl font-display font-bold text-primary">
-                  <AnimatedCounter from={0} to={parseInt(stat.value)} suffix={stat.suffix} />
+                  <AnimatedCounter from={0} to={stat.value} suffix={stat.suffix} />
                 </div>
                 <div className="text-xs md:text-sm text-white/70 font-semibold uppercase tracking-wider">{stat.label}</div>
               </motion.div>
@@ -1483,11 +1504,17 @@ export default function Home() {
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { img: project1Img, title: "Bagmati Commercial Tower", category: "Commercial", location: "Kathmandu, Nepal" },
-              { img: project2Img, title: "Trishuli River Bridge", category: "Infrastructure", location: "Nuwakot, Nepal" },
-              { img: project3Img, title: "Hetauda Industrial Complex", category: "Industrial", location: "Hetauda, Nepal" }
-            ].map((project, i) => (
+            {(featuredProjects && featuredProjects.length > 0
+              ? featuredProjects.map((p, i) => ({
+                  img: PROJECT_IMGS[i % PROJECT_IMGS.length],
+                  title: p.title,
+                  category: p.type ?? "Construction",
+                  location: p.location ?? "Nepal",
+                  progress: p.progress,
+                  status: p.status,
+                }))
+              : FALLBACK_PROJECTS
+            ).map((project, i) => (
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={FADE_UP} className="group cursor-pointer block h-full">
                 <div className="relative aspect-[3/4] overflow-hidden bg-background">
                   <img src={project.img} alt={project.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
@@ -1498,6 +1525,14 @@ export default function Home() {
                       {project.category}
                     </span>
                   </div>
+
+                  {"progress" in project && project.status !== "completed" && (
+                    <div className="absolute top-6 right-6 z-20">
+                      <span className="bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-sm">
+                        {project.progress}%
+                      </span>
+                    </div>
+                  )}
 
                   <div className="absolute bottom-0 left-0 right-0 p-8 z-20 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                     <h3 className="text-2xl font-display font-bold text-white mb-2 leading-tight">{project.title}</h3>

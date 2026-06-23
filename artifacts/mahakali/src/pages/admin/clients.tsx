@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { adminApi, type ClientUser } from "@/lib/admin-api";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { notify } from "@/lib/notify";
 
 function validatePhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
@@ -8,6 +10,7 @@ function validatePhone(phone: string): string {
 }
 
 export default function AdminClients() {
+  const confirm = useConfirm();
   const [clients, setClients] = useState<ClientUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -23,9 +26,20 @@ export default function AdminClients() {
   useEffect(() => { load(); }, []);
 
   async function handleDelete(id: number, name: string) {
-    if (!confirm(`Delete client "${name}"? This will also remove their login access.`)) return;
-    await adminApi.clients.delete(id);
-    await load();
+    const ok = await confirm({
+      title: "Delete Client?",
+      message: `"${name}" and their portal login access will be permanently removed.`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await adminApi.clients.delete(id);
+      notify.success(`${name} has been removed.`, "Client Deleted");
+      await load();
+    } catch (e: any) {
+      notify.error(e.message ?? "Failed to delete client");
+    }
   }
 
   const filtered = clients.filter(c =>

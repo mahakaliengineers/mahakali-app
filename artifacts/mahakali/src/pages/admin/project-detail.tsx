@@ -4,6 +4,8 @@ import {
   adminApi, type StaffUser, type StaffProjectDetail, type Milestone,
   type ProjectDocument, type ProjectPhoto, type Payment, ROLE_LABELS, ROLE_COLORS,
 } from "@/lib/admin-api";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { notify } from "@/lib/notify";
 
 const STATUS_COLORS: Record<string, string> = {
   planning: "bg-yellow-100 text-yellow-700",
@@ -152,6 +154,7 @@ export default function AdminProjectDetail({ projectId, user }: { projectId: num
 
 // ─── OVERVIEW TAB ──────────────────────────────────────────────────────────────
 function OverviewTab({ project, user, canFullAccess, canAssign, onReload, navigate }: any) {
+  const confirm = useConfirm();
   const [editProgress, setEditProgress] = useState(false);
   const [progress, setProgress] = useState(project.progress);
   const [status, setStatus] = useState(project.status);
@@ -161,8 +164,11 @@ function OverviewTab({ project, user, canFullAccess, canAssign, onReload, naviga
   const [assignRoleLabel, setAssignRoleLabel] = useState("");
 
   async function saveProgress() {
-    try { await adminApi.projects.update(project.id, { progress, status }); onReload(); setEditProgress(false); }
-    catch (e: any) { alert(e.message); }
+    try {
+      await adminApi.projects.update(project.id, { progress, status });
+      notify.success("Progress and status updated.");
+      onReload(); setEditProgress(false);
+    } catch (e: any) { notify.error(e.message); }
   }
 
   async function loadUsers() {
@@ -173,18 +179,23 @@ function OverviewTab({ project, user, canFullAccess, canAssign, onReload, naviga
     if (!assignUserId || !assignRoleLabel) return;
     try {
       await adminApi.projects.assign(project.id, parseInt(assignUserId), assignRoleLabel);
+      notify.success("Team member assigned.");
       onReload(); setShowAssign(false); setAssignUserId(""); setAssignRoleLabel("");
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { notify.error(e.message); }
   }
 
   async function handleRemove(userId: number) {
-    if (!confirm("Remove this team member?")) return;
-    try { await adminApi.projects.removeAssignment(project.id, userId); onReload(); } catch (e: any) { alert(e.message); }
+    const ok = await confirm({ title: "Remove Team Member?", message: "They will lose access to this project.", confirmLabel: "Remove", danger: true });
+    if (!ok) return;
+    try { await adminApi.projects.removeAssignment(project.id, userId); notify.success("Member removed."); onReload(); }
+    catch (e: any) { notify.error(e.message); }
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete project "${project.title}"? This cannot be undone.`)) return;
-    try { await adminApi.projects.update(project.id, { deleted: true }); navigate("/admin/projects"); } catch (e: any) { alert(e.message); }
+    const ok = await confirm({ title: `Delete "${project.title}"?`, message: "This project and all its data will be permanently deleted.", confirmLabel: "Delete Project", danger: true });
+    if (!ok) return;
+    try { await adminApi.projects.update(project.id, { deleted: true }); notify.success("Project deleted."); navigate("/admin/projects"); }
+    catch (e: any) { notify.error(e.message); }
   }
 
   useEffect(() => { if (showAssign) loadUsers(); }, [showAssign]);
@@ -301,6 +312,7 @@ function OverviewTab({ project, user, canFullAccess, canAssign, onReload, naviga
 
 // ─── MILESTONES TAB ────────────────────────────────────────────────────────────
 function MilestonesTab({ project, user, isSuperAdmin, canFullAccess, onReload }: any) {
+  const confirm = useConfirm();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", dueDate: "", order: "0" });
   const [saving, setSaving] = useState(false);
@@ -315,33 +327,38 @@ function MilestonesTab({ project, user, isSuperAdmin, canFullAccess, onReload }:
         dueDate: form.dueDate || undefined,
         order: parseInt(form.order) || 0,
       });
+      notify.success("Milestone added.");
       setForm({ title: "", description: "", dueDate: "", order: "0" });
-      setShowAdd(false);
-      onReload();
-    } catch (e: any) { alert(e.message); }
+      setShowAdd(false); onReload();
+    } catch (e: any) { notify.error(e.message); }
     finally { setSaving(false); }
   }
 
   async function toggleComplete(m: Milestone) {
     try {
       if (m.completedAt) await adminApi.milestones.markIncomplete(m.id);
-      else await adminApi.milestones.markComplete(m.id);
+      else { await adminApi.milestones.markComplete(m.id); notify.success("Milestone marked complete — awaiting verification."); }
       onReload();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { notify.error(e.message); }
   }
 
   async function handleVerify(m: Milestone) {
-    try { await adminApi.milestones.verify(m.id); onReload(); } catch (e: any) { alert(e.message); }
+    try { await adminApi.milestones.verify(m.id); notify.success(`"${m.title}" verified.`); onReload(); }
+    catch (e: any) { notify.error(e.message); }
   }
 
   async function handleReject(m: Milestone) {
-    if (!confirm("Reject and re-open this milestone?")) return;
-    try { await adminApi.milestones.reject(m.id); onReload(); } catch (e: any) { alert(e.message); }
+    const ok = await confirm({ title: "Reject Milestone?", message: "This will re-open the milestone for more work.", confirmLabel: "Reject & Re-open", danger: true });
+    if (!ok) return;
+    try { await adminApi.milestones.reject(m.id); notify.info("Milestone rejected and re-opened."); onReload(); }
+    catch (e: any) { notify.error(e.message); }
   }
 
   async function handleDelete(m: Milestone) {
-    if (!confirm("Delete this milestone?")) return;
-    try { await adminApi.milestones.delete(m.id); onReload(); } catch (e: any) { alert(e.message); }
+    const ok = await confirm({ title: "Delete Milestone?", message: `"${m.title}" will be permanently removed.`, confirmLabel: "Delete", danger: true });
+    if (!ok) return;
+    try { await adminApi.milestones.delete(m.id); notify.success("Milestone deleted."); onReload(); }
+    catch (e: any) { notify.error(e.message); }
   }
 
   const milestones: Milestone[] = project.milestones;
@@ -477,6 +494,7 @@ function MilestonesTab({ project, user, isSuperAdmin, canFullAccess, onReload }:
 
 // ─── DOCUMENTS TAB ─────────────────────────────────────────────────────────────
 function DocumentsTab({ project, isSuperAdmin, canFullAccess, onReload }: any) {
+  const confirm = useConfirm();
   const [showUpload, setShowUpload] = useState(false);
   const [docName, setDocName] = useState("");
   const [docType, setDocType] = useState("other");
@@ -490,21 +508,24 @@ function DocumentsTab({ project, isSuperAdmin, canFullAccess, onReload }: any) {
     try {
       const objectPath = await uploadFile(file);
       await adminApi.documents.upload(project.id, { name: docName, url: objectPath, type: docType });
+      notify.success(`"${docName}" uploaded successfully.`);
       setFile(null); setDocName(""); setDocType("other");
       if (fileRef.current) fileRef.current.value = "";
-      setShowUpload(false);
-      onReload();
-    } catch (e: any) { alert(e.message); }
+      setShowUpload(false); onReload();
+    } catch (e: any) { notify.error(e.message); }
     finally { setUploading(false); }
   }
 
   async function handleApprove(doc: ProjectDocument) {
-    try { await adminApi.documents.approve(doc.id); onReload(); } catch (e: any) { alert(e.message); }
+    try { await adminApi.documents.approve(doc.id); notify.success(`"${doc.name}" approved.`); onReload(); }
+    catch (e: any) { notify.error(e.message); }
   }
 
   async function handleDelete(doc: ProjectDocument) {
-    if (!confirm("Delete this document?")) return;
-    try { await adminApi.documents.delete(doc.id); onReload(); } catch (e: any) { alert(e.message); }
+    const ok = await confirm({ title: "Delete Document?", message: `"${doc.name}" will be permanently removed.`, confirmLabel: "Delete", danger: true });
+    if (!ok) return;
+    try { await adminApi.documents.delete(doc.id); notify.success("Document deleted."); onReload(); }
+    catch (e: any) { notify.error(e.message); }
   }
 
   const documents: ProjectDocument[] = project.documents;
@@ -584,6 +605,7 @@ function DocumentsTab({ project, isSuperAdmin, canFullAccess, onReload }: any) {
 
 // ─── PHOTOS TAB ────────────────────────────────────────────────────────────────
 function PhotosTab({ project, isSuperAdmin, canFullAccess, onReload }: any) {
+  const confirm = useConfirm();
   const [showUpload, setShowUpload] = useState(false);
   const [caption, setCaption] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -604,21 +626,24 @@ function PhotosTab({ project, isSuperAdmin, canFullAccess, onReload }: any) {
     try {
       const objectPath = await uploadFile(file);
       await adminApi.photos.upload(project.id, { url: objectPath, caption: caption || undefined });
+      notify.success("Photo uploaded successfully.");
       setFile(null); setCaption(""); setPreview(null);
       if (fileRef.current) fileRef.current.value = "";
-      setShowUpload(false);
-      onReload();
-    } catch (e: any) { alert(e.message); }
+      setShowUpload(false); onReload();
+    } catch (e: any) { notify.error(e.message); }
     finally { setUploading(false); }
   }
 
   async function handleApprove(photo: ProjectPhoto) {
-    try { await adminApi.photos.approve(photo.id); onReload(); } catch (e: any) { alert(e.message); }
+    try { await adminApi.photos.approve(photo.id); notify.success("Photo approved."); onReload(); }
+    catch (e: any) { notify.error(e.message); }
   }
 
   async function handleDelete(photo: ProjectPhoto) {
-    if (!confirm("Delete this photo?")) return;
-    try { await adminApi.photos.delete(photo.id); onReload(); } catch (e: any) { alert(e.message); }
+    const ok = await confirm({ title: "Delete Photo?", message: "This photo will be permanently removed.", confirmLabel: "Delete", danger: true });
+    if (!ok) return;
+    try { await adminApi.photos.delete(photo.id); notify.success("Photo deleted."); onReload(); }
+    catch (e: any) { notify.error(e.message); }
   }
 
   const photos: ProjectPhoto[] = project.photos;
@@ -696,6 +721,7 @@ function PhotosTab({ project, isSuperAdmin, canFullAccess, onReload }: any) {
 
 // ─── PAYMENTS TAB ──────────────────────────────────────────────────────────────
 function PaymentsTab({ project, isSuperAdmin, canManagePayments, canFullAccess, onReload }: any) {
+  const confirm = useConfirm();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ label: "", amount: "", status: "pending", dueDate: "" });
   const [saving, setSaving] = useState(false);
@@ -713,25 +739,31 @@ function PaymentsTab({ project, isSuperAdmin, canManagePayments, canFullAccess, 
       await adminApi.payments.create(project.id, {
         label: form.label, amount: form.amount, status: form.status, dueDate: form.dueDate || undefined,
       });
+      notify.success("Billing record added.");
       setForm({ label: "", amount: "", status: "pending", dueDate: "" });
       setShowAdd(false); onReload();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { notify.error(e.message); }
     finally { setSaving(false); }
   }
 
   async function markPaid(p: Payment) {
-    try { await adminApi.payments.update(p.id, { status: "paid", paidAt: new Date().toISOString() }); onReload(); }
-    catch (e: any) { alert(e.message); }
+    try {
+      await adminApi.payments.update(p.id, { status: "paid", paidAt: new Date().toISOString() });
+      notify.success(`"${p.label}" marked as paid.`);
+      onReload();
+    } catch (e: any) { notify.error(e.message); }
   }
 
   async function markOverdue(p: Payment) {
-    try { await adminApi.payments.update(p.id, { status: "overdue" }); onReload(); }
-    catch (e: any) { alert(e.message); }
+    try { await adminApi.payments.update(p.id, { status: "overdue" }); notify.warning(`"${p.label}" marked overdue.`); onReload(); }
+    catch (e: any) { notify.error(e.message); }
   }
 
   async function handleDelete(p: Payment) {
-    if (!confirm("Delete this billing record?")) return;
-    try { await adminApi.payments.delete(p.id); onReload(); } catch (e: any) { alert(e.message); }
+    const ok = await confirm({ title: "Delete Billing Record?", message: `"${p.label}" will be permanently removed.`, confirmLabel: "Delete", danger: true });
+    if (!ok) return;
+    try { await adminApi.payments.delete(p.id); notify.success("Billing record deleted."); onReload(); }
+    catch (e: any) { notify.error(e.message); }
   }
 
   const fmtAmt = (n: number) => `Rs. ${n.toLocaleString("en-IN", { minimumFractionDigits: 0 })}`;
@@ -845,8 +877,9 @@ function UpdatesTab({ project, onReload }: any) {
     setPosting(true);
     try {
       await adminApi.projects.addUpdate(project.id, message.trim());
+      notify.success("Update posted.");
       setMessage(""); onReload();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { notify.error(e.message); }
     finally { setPosting(false); }
   }
 

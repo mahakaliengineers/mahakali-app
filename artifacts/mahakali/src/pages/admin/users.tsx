@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { adminApi, type StaffUser, type StaffRole, ROLE_LABELS, ROLE_COLORS } from "@/lib/admin-api";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { notify } from "@/lib/notify";
 
-// super_admin cannot be assigned to anyone else — only 1 can exist in the system
 const ASSIGNABLE_ROLES: StaffRole[] = ["admin", "project_manager", "engineer", "site_engineer"];
 
 function validatePhone(phone: string): string {
@@ -11,6 +12,7 @@ function validatePhone(phone: string): string {
 }
 
 export default function AdminUsers({ currentUser }: { currentUser: StaffUser }) {
+  const confirm = useConfirm();
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -19,22 +21,26 @@ export default function AdminUsers({ currentUser }: { currentUser: StaffUser }) 
 
   async function load() {
     setLoading(true);
-    try {
-      setUsers(await adminApi.users.list());
-    } finally {
-      setLoading(false);
-    }
+    try { setUsers(await adminApi.users.list()); }
+    finally { setLoading(false); }
   }
 
   useEffect(() => { load(); }, []);
 
-  async function handleDelete(id: number) {
-    if (!confirm("Delete this user? This cannot be undone.")) return;
+  async function handleDelete(id: number, name: string) {
+    const ok = await confirm({
+      title: "Delete Staff User?",
+      message: `"${name}" will lose all access. This cannot be undone.`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await adminApi.users.delete(id);
+      notify.success(`${name} has been removed.`, "User Deleted");
       await load();
     } catch (err: any) {
-      alert(err.message ?? "Failed to delete user");
+      notify.error(err.message ?? "Failed to delete user");
     }
   }
 
@@ -101,7 +107,7 @@ export default function AdminUsers({ currentUser }: { currentUser: StaffUser }) 
                       >Edit</button>
                       {u.id !== currentUser.id && u.role !== "super_admin" && (
                         <button
-                          onClick={() => handleDelete(u.id)}
+                          onClick={() => handleDelete(u.id, u.name)}
                           className="text-xs text-red-600 hover:underline font-medium"
                         >Delete</button>
                       )}

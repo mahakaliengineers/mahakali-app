@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import contactRouter from "./contact";
+import publicRouter from "./public";
 import portalAuthRouter from "./portal/auth";
 import portalProjectsRouter from "./portal/projects";
 import portalResourcesRouter from "./portal/resources";
@@ -20,6 +21,7 @@ const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(contactRouter);
+router.use(publicRouter);
 router.use(portalAuthRouter);
 router.use(portalProjectsRouter);
 router.use(portalResourcesRouter);
