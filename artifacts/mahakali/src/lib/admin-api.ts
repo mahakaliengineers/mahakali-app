@@ -128,6 +128,18 @@ export interface StaffProjectDetail extends StaffProject {
   documents: ProjectDocument[];
 }
 
+export interface Inquiry {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  projectType: string;
+  message: string;
+  status: "new" | "read" | "archived";
+  createdAt: string;
+}
+
 export interface AdminTestimonial {
   id: number;
   projectId: number | null;
@@ -241,6 +253,12 @@ export const adminApi = {
     approve: (id: number) => req<AdminTestimonial>(`/staff/testimonials/${id}/approve`, { method: "PATCH" }),
     reject: (id: number) => req<AdminTestimonial>(`/staff/testimonials/${id}/reject`, { method: "PATCH" }),
     delete: (id: number) => rawReq(`/staff/testimonials/${id}`, { method: "DELETE" }),
+  },
+  inquiries: {
+    list: () => req<Inquiry[]>("/staff/inquiries"),
+    updateStatus: (id: number, status: "new" | "read" | "archived") =>
+      req<Inquiry>(`/staff/inquiries/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+    delete: (id: number) => rawReq(`/staff/inquiries/${id}`, { method: "DELETE" }),
   },
 };
 

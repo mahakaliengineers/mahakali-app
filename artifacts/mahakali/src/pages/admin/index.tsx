@@ -9,6 +9,7 @@ import AdminClients from "./clients";
 import AdminProjects from "./projects";
 import AdminProjectDetail from "./project-detail";
 import AdminTestimonials from "./testimonials";
+import AdminInquiries from "./inquiries";
 
 export default function AdminApp() {
   const [user, setUser] = useState<StaffUser | null | undefined>(undefined);
@@ -57,6 +58,8 @@ export default function AdminApp() {
     content = <AdminUsers currentUser={user} />;
   } else if (location.startsWith("/admin/testimonials")) {
     content = <AdminTestimonials />;
+  } else if (location.startsWith("/admin/inquiries")) {
+    content = <AdminInquiries />;
   } else {
     content = <AdminDashboard user={user} />;
   }
