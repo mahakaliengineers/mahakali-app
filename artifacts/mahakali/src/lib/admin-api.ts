@@ -128,6 +128,18 @@ export interface StaffProjectDetail extends StaffProject {
   documents: ProjectDocument[];
 }
 
+export interface AdminTestimonial {
+  id: number;
+  projectId: number | null;
+  clientId: number | null;
+  authorName: string;
+  authorRole: string | null;
+  text: string;
+  rating: number;
+  status: string;
+  createdAt: string;
+}
+
 export const adminApi = {
   auth: {
     login: (email: string, password: string) =>
@@ -223,6 +235,12 @@ export const adminApi = {
       req<{ uploadURL: string; objectPath: string }>("/staff/storage/upload-url", {
         method: "POST", body: JSON.stringify({ name }),
       }),
+  },
+  testimonials: {
+    list: () => req<AdminTestimonial[]>("/staff/testimonials"),
+    approve: (id: number) => req<AdminTestimonial>(`/staff/testimonials/${id}/approve`, { method: "PATCH" }),
+    reject: (id: number) => req<AdminTestimonial>(`/staff/testimonials/${id}/reject`, { method: "PATCH" }),
+    delete: (id: number) => rawReq(`/staff/testimonials/${id}`, { method: "DELETE" }),
   },
 };
 
