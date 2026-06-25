@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { projectsTable, usersTable, testimonialsTable } from "@workspace/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { projectsTable, usersTable, testimonialsTable, photosTable, milestonesTable } from "@workspace/db/schema";
+import { eq, sql, and } from "drizzle-orm";
 
 const router = Router();
 
@@ -53,6 +53,67 @@ router.get("/public/projects", async (_req, res) => {
     res.json(projects);
   } catch {
     res.status(500).json({ error: "Failed to load projects" });
+  }
+});
+
+// Single public project detail
+router.get("/public/projects/:id", async (req, res) => {
+  const id = parseInt(req.params["id"]!, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  try {
+    const [project] = await db
+      .select({
+        id: projectsTable.id,
+        title: projectsTable.title,
+        description: projectsTable.description,
+        location: projectsTable.location,
+        type: projectsTable.type,
+        status: projectsTable.status,
+        progress: projectsTable.progress,
+        startDate: projectsTable.startDate,
+        endDate: projectsTable.endDate,
+        createdAt: projectsTable.createdAt,
+      })
+      .from(projectsTable)
+      .where(eq(projectsTable.id, id))
+      .limit(1);
+
+    if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+
+    // Approved photos only
+    const photos = await db
+      .select({ id: photosTable.id, url: photosTable.url, caption: photosTable.caption })
+      .from(photosTable)
+      .where(and(eq(photosTable.projectId, id), eq(photosTable.status, "approved")))
+      .limit(20);
+
+    // Milestones (titles + completion only)
+    const milestones = await db
+      .select({
+        id: milestonesTable.id,
+        title: milestonesTable.title,
+        completed: sql<boolean>`completed_at is not null`,
+        order: milestonesTable.order,
+      })
+      .from(milestonesTable)
+      .where(eq(milestonesTable.projectId, id))
+      .orderBy(milestonesTable.order);
+
+    // Approved testimonials for this project
+    const testimonials = await db
+      .select({
+        id: testimonialsTable.id,
+        authorName: testimonialsTable.authorName,
+        authorRole: testimonialsTable.authorRole,
+        text: testimonialsTable.text,
+        rating: testimonialsTable.rating,
+      })
+      .from(testimonialsTable)
+      .where(and(eq(testimonialsTable.projectId, id), eq(testimonialsTable.status, "approved")));
+
+    res.json({ ...project, photos, milestones, testimonials });
+  } catch {
+    res.status(500).json({ error: "Failed to load project" });
   }
 });
 

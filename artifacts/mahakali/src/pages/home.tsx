@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "wouter";
 import { motion, useInView, useAnimation, AnimatePresence } from "framer-motion";
 import { 
   Building2, HardHat, ShieldCheck, Factory, ChevronRight, MapPin, Mail, Phone, 
@@ -1638,6 +1639,7 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-8">
             {(featuredProjects && featuredProjects.length > 0
               ? featuredProjects.map((p, i) => ({
+                  id: p.id,
                   img: PROJECT_IMGS[i % PROJECT_IMGS.length],
                   title: p.title,
                   category: p.type ?? "Construction",
@@ -1646,22 +1648,22 @@ export default function Home() {
                   status: p.status,
                 }))
               : FALLBACK_PROJECTS
-            ).map((project, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={FADE_UP} className="group cursor-pointer block h-full">
+            ).map((project, i) => {
+              const inner = (
                 <div className="relative aspect-[3/4] overflow-hidden bg-background">
                   <img src={project.img} alt={project.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                   <div className="absolute inset-0 bg-gradient-to-t from-secondary/95 via-secondary/50 to-transparent" />
-                  
+
                   <div className="absolute top-6 left-6 z-20">
                     <span className="bg-primary text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-sm shadow-md">
                       {project.category}
                     </span>
                   </div>
 
-                  {"progress" in project && project.status !== "completed" && (
+                  {"progress" in project && (project as any).status !== "completed" && (
                     <div className="absolute top-6 right-6 z-20">
                       <span className="bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-sm">
-                        {project.progress}%
+                        {(project as any).progress}%
                       </span>
                     </div>
                   )}
@@ -1678,8 +1680,17 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              </motion.div>
-            ))}
+              );
+
+              return (
+                <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={FADE_UP} className="group block h-full">
+                  {"id" in project && (project as any).id
+                    ? <Link href={`/projects/${(project as any).id}`} className="block">{inner}</Link>
+                    : <div className="cursor-default">{inner}</div>
+                  }
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>

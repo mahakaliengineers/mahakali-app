@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import AdminApp from "@/pages/admin/index";
 import ClientApp from "@/pages/client/index";
+import PublicProjectPage from "@/pages/public-project";
 
 const queryClient = new QueryClient();
 
@@ -14,6 +15,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/projects/:id">
+        {(params) => <PublicProjectPage projectId={parseInt(params.id ?? "0", 10)} />}
+      </Route>
       <Route path={/^\/admin(\/.*)?$/} component={AdminApp} />
       <Route path={/^\/client(\/.*)?$/} component={ClientApp} />
       <Route component={NotFound} />
