@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { projectsTable, usersTable } from "@workspace/db/schema";
+import { projectsTable, usersTable, testimonialsTable } from "@workspace/db/schema";
 import { eq, sql } from "drizzle-orm";
 
 const router = Router();
@@ -54,6 +54,43 @@ router.get("/public/projects", async (_req, res) => {
   } catch {
     res.status(500).json({ error: "Failed to load projects" });
   }
+});
+
+// Public approved testimonials
+router.get("/public/testimonials", async (_req, res) => {
+  try {
+    const rows = await db
+      .select({
+        id: testimonialsTable.id,
+        authorName: testimonialsTable.authorName,
+        authorRole: testimonialsTable.authorRole,
+        text: testimonialsTable.text,
+        rating: testimonialsTable.rating,
+        createdAt: testimonialsTable.createdAt,
+      })
+      .from(testimonialsTable)
+      .where(eq(testimonialsTable.status, "approved"))
+      .orderBy(sql`created_at desc`)
+      .limit(20);
+    res.json(rows);
+  } catch {
+    res.status(500).json({ error: "Failed to load testimonials" });
+  }
+});
+
+// Admin: approve/reject testimonials
+router.patch("/public/testimonials/:id/approve", async (req, res) => {
+  const id = parseInt(req.params["id"]!, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.update(testimonialsTable).set({ status: "approved" }).where(eq(testimonialsTable.id, id));
+  res.json({ ok: true });
+});
+
+router.patch("/public/testimonials/:id/reject", async (req, res) => {
+  const id = parseInt(req.params["id"]!, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.update(testimonialsTable).set({ status: "rejected" }).where(eq(testimonialsTable.id, id));
+  res.json({ ok: true });
 });
 
 export default router;

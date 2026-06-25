@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import {
   photosTable, documentsTable, updatesTable, paymentsTable,
-  milestonesTable, projectsTable, usersTable, commentsTable
+  milestonesTable, projectsTable, usersTable, commentsTable, testimonialsTable
 } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 
@@ -131,6 +131,51 @@ router.post("/portal/projects/:id/comments", requireAuth, async (req, res) => {
 
   const user = await getUser(userId);
   res.status(201).json({ ...comment, authorName: user?.name ?? "Unknown" });
+});
+
+// ─── Testimonials ────────────────────────────────────────────────────────────
+
+router.get("/portal/projects/:id/testimonials", requireAuth, async (req, res) => {
+  const id = parseInt(req.params["id"]!, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const ok = await canAccessProject(req.session!.userId as number, id);
+  if (!ok) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const rows = await db
+    .select()
+    .from(testimonialsTable)
+    .where(eq(testimonialsTable.projectId, id))
+    .orderBy(testimonialsTable.createdAt);
+
+  res.json(rows);
+});
+
+router.post("/portal/projects/:id/testimonials", requireAuth, async (req, res) => {
+  const id = parseInt(req.params["id"]!, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const ok = await canAccessProject(req.session!.userId as number, id);
+  if (!ok) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const { text, rating, authorRole } = req.body;
+  if (!text || typeof text !== "string" || !text.trim()) {
+    res.status(400).json({ error: "Review text is required" }); return;
+  }
+  const ratingNum = Math.min(5, Math.max(1, parseInt(rating ?? "5", 10) || 5));
+
+  const userId = req.session!.userId as number;
+  const user = await getUser(userId);
+
+  const [testimonial] = await db.insert(testimonialsTable).values({
+    projectId: id,
+    clientId: userId,
+    authorName: user?.name ?? "Client",
+    authorRole: authorRole?.trim() || null,
+    text: text.trim(),
+    rating: ratingNum,
+    status: "pending",
+  }).returning();
+
+  res.status(201).json(testimonial);
 });
 
 export default router;

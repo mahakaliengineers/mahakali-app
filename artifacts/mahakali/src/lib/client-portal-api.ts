@@ -91,6 +91,18 @@ export interface Comment {
   createdAt: string;
 }
 
+export interface Testimonial {
+  id: number;
+  projectId: number | null;
+  clientId: number | null;
+  authorName: string;
+  authorRole: string | null;
+  text: string;
+  rating: number;
+  status: string;
+  createdAt: string;
+}
+
 export const clientApi = {
   auth: {
     login: (email: string, password: string) =>
@@ -111,5 +123,8 @@ export const clientApi = {
     comments: (id: number) => req<Comment[]>(`/portal/projects/${id}/comments`),
     addComment: (id: number, message: string) =>
       req<Comment>(`/portal/projects/${id}/comments`, { method: "POST", body: JSON.stringify({ message }) }),
+    testimonials: (id: number) => req<Testimonial[]>(`/portal/projects/${id}/testimonials`),
+    submitTestimonial: (id: number, data: { text: string; rating: number; authorRole?: string }) =>
+      req<Testimonial>(`/portal/projects/${id}/testimonials`, { method: "POST", body: JSON.stringify(data) }),
   },
 };
