@@ -1,1 +1,0 @@
-- [Role system design](role-system.md) — three roles: super_admin (approve/delete), admin (upload/add), client (view+comment)
