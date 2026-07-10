@@ -1,0 +1,14 @@
+---
+deployment:
+  tasks:
+    - export REPO=/home/mahakal2/repositories/mahakali-app
+
+    # Build frontend locally is recommended, but if building on server:
+    # Frontend - copy built files to public_html
+    - /bin/cp -r $REPO/apps/mahakali/dist/public/* /home/mahakal2/public_html/
+
+    # Backend - copy built dist to api-server
+    - /bin/cp -r $REPO/apps/api-server/dist/* /home/mahakal2/api-server/dist/
+
+    # Restart Node.js app
+    - touch /home/mahakal2/api-server/tmp/restart.txt
