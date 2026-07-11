@@ -2032,7 +2032,7 @@ export default function Home() {
                 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold text-white leading-[1.1] mb-6"
               >
                 Engineering{" "}
-                <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-orange-500">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-500">
                   Excellence
                 </span>{" "}
                 <br />
@@ -2044,7 +2044,7 @@ export default function Home() {
               >
                 Mahakali Engineers and Developers delivers massive
                 infrastructure, commercial structures, and robust civil works
-                with uncompromising precision. TEST
+                with uncompromising precision. Test build
               </motion.p>
               <motion.div
                 variants={FADE_UP}
