@@ -13,7 +13,6 @@ declare module "express-session" {
 }
 
 const PgStore = connectPgSimple(session);
-
 const app: Express = express();
 
 app.use(
@@ -36,10 +35,15 @@ app.use(
   }),
 );
 
+const isProduction = process.env["NODE_ENV"] === "production";
+
 app.use(cors({
-  origin: true,
+  origin: isProduction ? "https://mahakaliengineer.com" : true,
   credentials: true,
 }));
+
+app.set("trust proxy", 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -54,12 +58,11 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: process.env["NODE_ENV"] === "production",
+    secure: isProduction,
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: process.env["NODE_ENV"] === "production" ? "none" : "lax",
+    sameSite: isProduction ? "none" : "lax",
   },
 }));
 
 app.use("/api", router);
-
 export default app;
