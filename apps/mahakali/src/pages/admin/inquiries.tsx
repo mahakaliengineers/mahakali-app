@@ -12,7 +12,13 @@ const STATUS_BADGE: Record<string, string> = {
 type Filter = "all" | "new" | "read" | "archived";
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-NP", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleDateString("en-NP", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function AdminInquiries() {
@@ -23,7 +29,8 @@ export default function AdminInquiries() {
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
-    adminApi.inquiries.list()
+    adminApi.inquiries
+      .list()
       .then(setItems)
       .catch(() => notify.error("Failed to load inquiries"))
       .finally(() => setLoading(false));
@@ -32,7 +39,7 @@ export default function AdminInquiries() {
   async function markRead(id: number) {
     try {
       const updated = await adminApi.inquiries.updateStatus(id, "read");
-      setItems(prev => prev.map(i => i.id === id ? updated : i));
+      setItems((prev) => prev.map((i) => (i.id === id ? updated : i)));
     } catch {
       notify.error("Failed to update status");
     }
@@ -41,7 +48,7 @@ export default function AdminInquiries() {
   async function archive(id: number) {
     try {
       const updated = await adminApi.inquiries.updateStatus(id, "archived");
-      setItems(prev => prev.map(i => i.id === id ? updated : i));
+      setItems((prev) => prev.map((i) => (i.id === id ? updated : i)));
       notify.success("Archived");
     } catch {
       notify.error("Failed to archive");
@@ -49,23 +56,29 @@ export default function AdminInquiries() {
   }
 
   async function handleDelete(id: number) {
-    const ok = await confirm("Delete this inquiry permanently?", { confirmLabel: "Delete", danger: true });
+    const ok = await confirm({
+      title: "Delete this inquiry permanently?",
+      message:
+        "Are you sure you want to delete this inquiry? This action cannot be undone.",
+      danger: true,
+    });
     if (!ok) return;
     try {
       await adminApi.inquiries.delete(id);
-      setItems(prev => prev.filter(i => i.id !== id));
+      setItems((prev) => prev.filter((i) => i.id !== id));
       notify.success("Deleted");
     } catch {
       notify.error("Failed to delete");
     }
   }
 
-  const filtered = filter === "all" ? items : items.filter(i => i.status === filter);
+  const filtered =
+    filter === "all" ? items : items.filter((i) => i.status === filter);
   const counts = {
     all: items.length,
-    new: items.filter(i => i.status === "new").length,
-    read: items.filter(i => i.status === "read").length,
-    archived: items.filter(i => i.status === "archived").length,
+    new: items.filter((i) => i.status === "new").length,
+    read: items.filter((i) => i.status === "read").length,
+    archived: items.filter((i) => i.status === "archived").length,
   };
 
   const FILTERS: { key: Filter; label: string }[] = [
@@ -79,11 +92,13 @@ export default function AdminInquiries() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Quote Inquiries</h1>
-        <p className="text-sm text-gray-500 mt-1">Submissions from the "Request a Quote" form on the website.</p>
+        <p className="text-sm text-gray-500 mt-1">
+          Submissions from the "Request a Quote" form on the website.
+        </p>
       </div>
 
       <div className="flex gap-2 mb-6 flex-wrap">
-        {FILTERS.map(f => (
+        {FILTERS.map((f) => (
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
@@ -94,7 +109,9 @@ export default function AdminInquiries() {
             }`}
           >
             {f.label}
-            <span className={`ml-1.5 text-xs ${filter === f.key ? "text-white/80" : "text-gray-400"}`}>
+            <span
+              className={`ml-1.5 text-xs ${filter === f.key ? "text-white/80" : "text-gray-400"}`}
+            >
               {counts[f.key]}
             </span>
           </button>
@@ -107,16 +124,30 @@ export default function AdminInquiries() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <svg className="w-12 h-12 mx-auto mb-3 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          <svg
+            className="w-12 h-12 mx-auto mb-3 text-gray-200"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
           </svg>
-          <p className="text-sm">No {filter === "all" ? "" : filter} inquiries</p>
+          <p className="text-sm">
+            No {filter === "all" ? "" : filter} inquiries
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map(inquiry => {
+          {filtered.map((inquiry) => {
             const isOpen = expanded === inquiry.id;
-            const fullName = [inquiry.firstName, inquiry.lastName].filter(Boolean).join(" ");
+            const fullName = [inquiry.firstName, inquiry.lastName]
+              .filter(Boolean)
+              .join(" ");
             return (
               <div
                 key={inquiry.id}
@@ -134,27 +165,49 @@ export default function AdminInquiries() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-gray-900 text-sm">{fullName}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[inquiry.status]}`}>
+                      <span className="font-semibold text-gray-900 text-sm">
+                        {fullName}
+                      </span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[inquiry.status]}`}
+                      >
                         {inquiry.status}
                       </span>
                       {inquiry.projectType && (
-                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{inquiry.projectType}</span>
+                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                          {inquiry.projectType}
+                        </span>
                       )}
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-3 flex-wrap">
-                      <a href={`mailto:${inquiry.email}`} className="hover:text-red-600 transition-colors" onClick={e => e.stopPropagation()}>
+                      <a
+                        href={`mailto:${inquiry.email}`}
+                        className="hover:text-red-600 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         {inquiry.email}
                       </a>
                       {inquiry.phone && <span>{inquiry.phone}</span>}
                       <span>{formatDate(inquiry.createdAt)}</span>
                     </div>
                     {!isOpen && (
-                      <p className="text-sm text-gray-500 mt-1 truncate">{inquiry.message}</p>
+                      <p className="text-sm text-gray-500 mt-1 truncate">
+                        {inquiry.message}
+                      </p>
                     )}
                   </div>
-                  <svg className={`w-4 h-4 text-gray-400 shrink-0 mt-1 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <svg
+                    className={`w-4 h-4 text-gray-400 shrink-0 mt-1 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
 

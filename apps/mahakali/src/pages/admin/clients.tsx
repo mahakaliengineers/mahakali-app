@@ -19,11 +19,16 @@ export default function AdminClients() {
 
   async function load() {
     setLoading(true);
-    try { setClients(await adminApi.clients.list()); }
-    finally { setLoading(false); }
+    try {
+      setClients(await adminApi.clients.list());
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   async function handleDelete(id: number, name: string) {
     const ok = await confirm({
@@ -42,11 +47,12 @@ export default function AdminClients() {
     }
   }
 
-  const filtered = clients.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase()) ||
-    (c.clientCode ?? "").toLowerCase().includes(search.toLowerCase()) ||
-    (c.phone ?? "").includes(search)
+  const filtered = clients.filter(
+    (c) =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.email.toLowerCase().includes(search.toLowerCase()) ||
+      (c.clientCode ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (c.phone ?? "").includes(search),
   );
 
   return (
@@ -54,51 +60,85 @@ export default function AdminClients() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <p className="text-sm text-gray-500">Manage client accounts and portal access</p>
+          <p className="text-sm text-gray-500">
+            Manage client accounts and portal access
+          </p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
           </svg>
           Add Client
         </button>
       </div>
 
       <div className="relative">
-        <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        <svg
+          className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
         </svg>
         <input
           type="search"
           placeholder="Search clients…"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           className="pl-9 pr-4 py-2 w-full max-w-xs border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
         />
       </div>
 
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse space-y-3">
-          {[1,2,3].map(i => <div key={i} className="h-14 bg-gray-100 rounded" />)}
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-14 bg-gray-100 rounded" />
+          ))}
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
           <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-5 py-3 font-medium text-gray-600">Client</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">Code</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">Phone</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">Site Location</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">Fiscal Year</th>
+                <th className="text-left px-5 py-3 font-medium text-gray-600">
+                  Client
+                </th>
+                <th className="text-left px-5 py-3 font-medium text-gray-600">
+                  Code
+                </th>
+                <th className="text-left px-5 py-3 font-medium text-gray-600">
+                  Phone
+                </th>
+                <th className="text-left px-5 py-3 font-medium text-gray-600">
+                  Site Location
+                </th>
+                <th className="text-left px-5 py-3 font-medium text-gray-600">
+                  Fiscal Year
+                </th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map(c => (
+              {filtered.map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
@@ -107,7 +147,9 @@ export default function AdminClients() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-gray-900">{c.name}</p>
-                        <p className="text-xs text-gray-400 truncate">{c.email}</p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {c.email}
+                        </p>
                       </div>
                     </div>
                   </td>
@@ -117,12 +159,26 @@ export default function AdminClients() {
                     </span>
                   </td>
                   <td className="px-5 py-3 text-gray-500">{c.phone ?? "—"}</td>
-                  <td className="px-5 py-3 text-gray-500">{c.siteLocation ?? "—"}</td>
-                  <td className="px-5 py-3 text-gray-500">{c.fiscalYear ?? "—"}</td>
+                  <td className="px-5 py-3 text-gray-500">
+                    {c.siteLocation ?? "—"}
+                  </td>
+                  <td className="px-5 py-3 text-gray-500">
+                    {c.fiscalYear ?? "—"}
+                  </td>
                   <td className="px-5 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => setEditClient(c)} className="text-xs text-blue-600 hover:underline font-medium">Edit</button>
-                      <button onClick={() => handleDelete(c.id, c.name)} className="text-xs text-red-600 hover:underline font-medium">Delete</button>
+                      <button
+                        onClick={() => setEditClient(c)}
+                        className="text-xs text-blue-600 hover:underline font-medium"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(c.id, c.name)}
+                        className="text-xs text-red-600 hover:underline font-medium"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -131,7 +187,9 @@ export default function AdminClients() {
           </table>
           {filtered.length === 0 && (
             <div className="text-center text-gray-400 text-sm py-10">
-              {search ? "No clients match your search." : "No clients yet. Add your first client."}
+              {search
+                ? "No clients match your search."
+                : "No clients yet. Add your first client."}
             </div>
           )}
         </div>
@@ -179,6 +237,7 @@ function ClientFormModal({
   const [name, setName] = useState(initial?.name ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [siteLocation, setSiteLocation] = useState(initial?.siteLocation ?? "");
   const [fiscalYear, setFiscalYear] = useState(initial?.fiscalYear ?? "");
@@ -197,7 +256,10 @@ function ClientFormModal({
     e.preventDefault();
     setError("");
     const pErr = phone ? validatePhone(phone) : "";
-    if (pErr) { setPhoneError(pErr); return; }
+    if (pErr) {
+      setPhoneError(pErr);
+      return;
+    }
     setSaving(true);
     try {
       await onSave({
@@ -221,68 +283,175 @@ function ClientFormModal({
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
           <h2 className="font-semibold text-gray-900">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Full Name *</label>
-              <input value={name} onChange={e => setName(e.target.value)} required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Full Name *
+              </label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Email *
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Phone (max 10 digits)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Phone (max 10 digits)
+              </label>
               <input
                 type="tel"
                 value={phone}
-                onChange={e => handlePhoneChange(e.target.value)}
+                onChange={(e) => handlePhoneChange(e.target.value)}
                 maxLength={10}
                 placeholder="e.g. 9851234567"
                 className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${phoneError ? "border-red-400" : "border-gray-300"}`}
               />
-              {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
+              {phoneError && (
+                <p className="text-xs text-red-500 mt-1">{phoneError}</p>
+              )}
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 Password {initial ? "(leave blank to keep current)" : "*"}
               </label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                required={!initial}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required={!initial}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  tabIndex={-1}
+                  className="absolute inset-y-0 right-0 flex items-center px-2.5 text-gray-400 hover:text-gray-600"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Site Location</label>
-              <input value={siteLocation} onChange={e => setSiteLocation(e.target.value)}
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Site Location
+              </label>
+              <input
+                value={siteLocation}
+                onChange={(e) => setSiteLocation(e.target.value)}
                 placeholder="e.g. Chabahil-07, Kathmandu"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Fiscal Year</label>
-              <input value={fiscalYear} onChange={e => setFiscalYear(e.target.value)}
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Fiscal Year
+              </label>
+              <input
+                value={fiscalYear}
+                onChange={(e) => setFiscalYear(e.target.value)}
                 placeholder="e.g. 2080/81"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Client Number</label>
-              <input value={clientNumber} onChange={e => setClientNumber(e.target.value)}
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Client Number
+              </label>
+              <input
+                value={clientNumber}
+                onChange={(e) => setClientNumber(e.target.value)}
                 placeholder="e.g. 100"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
             </div>
           </div>
-          {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          {error && (
+            <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+              {error}
+            </p>
+          )}
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
-            <button type="submit" disabled={saving}
-              className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium disabled:opacity-50">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium disabled:opacity-50"
+            >
               {saving ? "Saving…" : "Save"}
             </button>
           </div>

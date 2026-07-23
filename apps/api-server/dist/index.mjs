@@ -65322,7 +65322,7 @@ var app_exports = {};
 __export(app_exports, {
   default: () => app_default
 });
-var import_express21, import_cors, import_express_session, import_connect_pg_simple, import_pino_http, PgStore, app, app_default;
+var import_express21, import_cors, import_express_session, import_connect_pg_simple, import_pino_http, PgStore, app, isProduction2, app_default;
 var init_app = __esm({
   "src/app.ts"() {
     "use strict";
@@ -65354,10 +65354,12 @@ var init_app = __esm({
         }
       })
     );
+    isProduction2 = process.env["NODE_ENV"] === "production";
     app.use((0, import_cors.default)({
-      origin: true,
+      origin: isProduction2 ? "https://mahakaliengineer.com" : true,
       credentials: true
     }));
+    app.set("trust proxy", 1);
     app.use(import_express21.default.json());
     app.use(import_express21.default.urlencoded({ extended: true }));
     app.use((0, import_express_session.default)({
@@ -65371,9 +65373,9 @@ var init_app = __esm({
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: process.env["NODE_ENV"] === "production",
+        secure: isProduction2,
         maxAge: 7 * 24 * 60 * 60 * 1e3,
-        sameSite: process.env["NODE_ENV"] === "production" ? "none" : "lax"
+        sameSite: isProduction2 ? "none" : "lax"
       }
     }));
     app.use("/api", routes_default);

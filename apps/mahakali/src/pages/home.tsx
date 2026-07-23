@@ -1506,9 +1506,10 @@ function ContactForm() {
         <input
           type="tel"
           value={form.phone}
+          maxLength={10}
           onChange={set("phone")}
           className={inputCls}
-          placeholder="+977 98XXXXXXXX"
+          placeholder="98XXXXXXXX"
         />
       </div>
       <div>
@@ -1576,6 +1577,9 @@ interface PublicStats {
   completed: number;
   active: number;
   clients: number;
+}
+interface LoggedInUser {
+  role?: string;
 }
 interface FeaturedProject {
   id: number;
@@ -1769,8 +1773,8 @@ function TestimonialsCarousel({
 }
 
 const FALLBACK_STATS: PublicStats = {
-  total: 450,
-  completed: 418,
+  total: 45,
+  completed: 45,
   active: 32,
   clients: 0,
 };
@@ -1805,6 +1809,7 @@ export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [stats, setStats] = useState<PublicStats | null>(null);
+  const [loggedInUser, setLoggedInUser] = useState<LoggedInUser | null>(null);
   const [featuredProjects, setFeaturedProjects] = useState<
     FeaturedProject[] | null
   >(null);
@@ -1819,6 +1824,10 @@ export default function Home() {
   const [testimonialIdx, setTestimonialIdx] = useState(0);
 
   useEffect(() => {
+    fetch("/api/portal/auth/me")
+      .then((r) => r.json())
+      .then(setLoggedInUser)
+      .catch(() => {});
     fetch("/api/public/stats")
       .then((r) => r.json())
       .then(setStats)
@@ -1922,12 +1931,22 @@ export default function Home() {
             >
               Calculator
             </button>
-            <a
-              href="/client"
-              className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}
-            >
-              Client Portal
-            </a>
+            {loggedInUser?.role ? (
+              <a
+                href={loggedInUser?.role === "client" ? "/client" : "/admin"}
+                className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}
+              >
+                Dashboard
+              </a>
+            ) : (
+              <a
+                href="/client"
+                className={`hover:text-primary transition-colors ${scrolled ? "text-foreground" : "text-white/90 drop-shadow-md"}`}
+              >
+                Client Portal
+              </a>
+            )}
+
             <Button
               onClick={() => scrollTo("contact")}
               variant="default"
@@ -1983,12 +2002,21 @@ export default function Home() {
           >
             Calculator
           </button>
-          <a
-            href="/client"
-            className="text-xl font-bold text-left border-b pb-4 text-primary"
-          >
-            Client Portal
-          </a>
+          {loggedInUser?.role ? (
+            <a
+              href={loggedInUser?.role === "client" ? "/client" : "/admin"}
+              className="text-xl font-bold text-left border-b pb-4 text-primary"
+            >
+              Dashboard
+            </a>
+          ) : (
+            <a
+              href="/client"
+              className="text-xl font-bold text-left border-b pb-4 text-primary"
+            >
+              Client Portal
+            </a>
+          )}
           <Button
             onClick={() => scrollTo("contact")}
             size="lg"
@@ -2060,7 +2088,7 @@ export default function Home() {
                 <div className="hidden sm:flex items-center gap-6 ml-6 border-l border-white/20 pl-6">
                   <div>
                     <div className="text-3xl font-display font-bold text-white">
-                      <AnimatedCounter from={0} to={25} suffix="+" />
+                      <AnimatedCounter from={0} to={7} suffix="+" />
                     </div>
                     <div className="text-xs text-white/60 uppercase tracking-widest">
                       Years Exp
@@ -2068,7 +2096,7 @@ export default function Home() {
                   </div>
                   <div>
                     <div className="text-3xl font-display font-bold text-white">
-                      <AnimatedCounter from={0} to={450} suffix="+" />
+                      <AnimatedCounter from={0} to={45} suffix="+" />
                     </div>
                     <div className="text-xs text-white/60 uppercase tracking-widest">
                       Projects
@@ -2088,7 +2116,7 @@ export default function Home() {
             {(() => {
               const s = stats ?? FALLBACK_STATS;
               return [
-                { label: "Years Experience", value: 25, suffix: "+" },
+                { label: "Years Experience", value: 7, suffix: "+" },
                 {
                   label: "Projects Completed",
                   value:
@@ -2102,7 +2130,7 @@ export default function Home() {
                 },
                 {
                   label: "Clients Served",
-                  value: s.clients > 0 ? s.clients : 1200,
+                  value: s.clients > 0 ? s.clients : 40,
                   suffix: "+",
                 },
               ];
@@ -2340,7 +2368,7 @@ export default function Home() {
               </div>
               <div className="absolute -bottom-8 -right-8 md:-right-12 z-20 bg-primary p-8 md:p-10 text-white shadow-2xl max-w-[280px]">
                 <div className="text-5xl md:text-6xl font-display font-bold mb-2">
-                  25+
+                  7+
                 </div>
                 <div className="text-lg font-semibold leading-tight">
                   Years of building trust in Nepal.
@@ -2731,12 +2759,14 @@ export default function Home() {
                 Nepal.
               </p>
             </div>
-            <Button
-              variant="outline"
-              className="rounded-none self-start md:self-auto border-white/20 text-white hover:bg-white hover:text-secondary h-12 px-6"
-            >
-              View All Projects
-            </Button>
+            <a href="/projects" className="self-start md:self-auto">
+              <Button
+                variant="outline"
+                className="rounded-none self-start md:self-auto border-white/20 text-white hover:bg-white hover:text-secondary h-12 px-6"
+              >
+                View All Projects
+              </Button>
+            </a>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -2785,9 +2815,12 @@ export default function Home() {
                       {project.location}
                     </div>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="inline-flex items-center text-sm font-bold text-primary">
+                      <a
+                        href="/projects"
+                        className="inline-flex items-center text-sm font-bold text-primary"
+                      >
                         View Project <ArrowRight className="ml-2 h-4 w-4" />
-                      </span>
+                      </a>
                     </div>
                   </div>
                 </div>
