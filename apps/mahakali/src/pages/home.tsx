@@ -2160,7 +2160,7 @@ export default function Home() {
       </section>
 
       {/* Clients & Partners Strip */}
-      <section className="py-14 bg-muted/40 border-y border-border overflow-hidden">
+      {/* <section className="py-14 bg-muted/40 border-y border-border overflow-hidden">
         <div className="container mx-auto px-6 mb-8">
           <motion.p
             initial={{ opacity: 0 }}
@@ -2172,7 +2172,6 @@ export default function Home() {
           </motion.p>
         </div>
         <div className="relative overflow-hidden">
-          {/* Fade edges */}
           <div className="absolute left-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-r from-muted/40 to-transparent pointer-events-none" />
           <div className="absolute right-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-l from-muted/40 to-transparent pointer-events-none" />
           <div className="animate-marquee">
@@ -2187,7 +2186,6 @@ export default function Home() {
               { name: "Nepal Telecom", abbr: "NT" },
               { name: "Department of Urban Development", abbr: "DUDBC" },
               { name: "Shangrila Development Bank", abbr: "SDB" },
-              /* duplicate set for seamless loop */
               { name: "Nepal Electricity Authority", abbr: "NEA" },
               { name: "Department of Roads", abbr: "DoR" },
               { name: "Kathmandu Metropolitan City", abbr: "KMC" },
@@ -2216,7 +2214,7 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* 4 Pillars Section */}
       <section className="py-24 md:py-32 bg-secondary text-white">
